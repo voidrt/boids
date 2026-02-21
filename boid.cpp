@@ -2,13 +2,23 @@
 #include <raylib.h>
 #include <raymath.h>
 
-void Boid::moveBoid()
+void Boid::moveBoid(const Boid flock[], int boidCount)
 {
-    Vector2 targetDirection = Vector2Normalize(Vector2Subtract(GetMousePosition(), position));
-    Vector2 targetVelocity = targetDirection * maxSpeed;
-    Vector2 targetSteeringForce = Vector2Scale(Vector2Subtract(targetVelocity, velocity), 0.3f);
-    Vector2 acceleration = Vector2ClampValue(targetSteeringForce, 0, steerStrenght);
-    velocity = Vector2ClampValue(Vector2Add(velocity, Vector2Scale(acceleration, (0.1f + GetFrameTime()))), 0, maxSpeed);
+    velocity = Vector2Add(velocity, (Vector2) {0});
+    position = Vector2Add(position, Vector2Scale(velocity, 0.1f+ GetFrameTime()));
 
-    position = Vector2Add(position, Vector2Scale(velocity, 0.1f + GetFrameTime()));
+    // (int i = 0; i < boidCount; ++i)
+    // {
+    //     Boid otherBoid = flock[i];
+    //     if (this->id == otherBoid.id)
+    //         continue;
+    //     float distanceToOtherBoid = Vector2Distance(this->position, otherBoid.position);
+
+    //     if (distanceToOtherBoid < 60 && distanceToOtherBoid > 0.0f)
+    //     {
+    //         Vector2 repelDirection = Vector2Normalize(Vector2Subtract(this->position, otherBoid.position));
+
+    //         separationForce = (Vector2){repelDirection.x / distanceToOtherBoid, repelDirection.y / distanceToOtherBoid};
+    //     }
+    // }
 }

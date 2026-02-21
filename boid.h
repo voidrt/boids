@@ -7,12 +7,13 @@ struct Boid
 {
     Vector2 position;
     Vector2 velocity;
-    float acceleration;
     float rotation;
     int maxSpeed;
     int steerStrenght;
+    int repelStrength;
+    int id;
 
-    void moveBoid();
+    void moveBoid(const Boid flock[], int boidCount);
 };
 
 #endif

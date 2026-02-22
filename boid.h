@@ -14,6 +14,7 @@ struct Boid
     float repelRadius;
     float boidRadius;
     int id;
+    Color color;
 
     void moveBoid(const Boid flock[], int boidCount);
 };

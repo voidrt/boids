@@ -1,12 +1,15 @@
 #include <raylib.h>
 #include <raymath.h>
 #include "boid.h"
+#include <iostream>
+#include <map>
 
-#define MAX_BOIDS 100
+
+#define MAX_BOIDS 300
 #define BOID_BASE_SIZE 10.0f
-#define BOID_SPEED 5.0f
+#define BOID_SPEED 1.0f
 #define BOID_REPEL_STRENGTH 2.0f
-#define BOID_REPEL_RADIUS 20.0f
+#define BOID_REPEL_RADIUS 100.0f
 
 static Boid boidsArray[MAX_BOIDS] = {0};
 static Camera2D camera = {0};
@@ -15,6 +18,7 @@ static float screenHeight = 600.0f;
 
 void HandleCameraControl(Camera2D &camera)
 {
+
     // Rotation
     if (IsKeyDown(KEY_A))
         camera.rotation -= 2.0f;
@@ -53,22 +57,22 @@ void HandleCameraControl(Camera2D &camera)
 }
 
 void HandleBoidsOnScreenEdge(Boid &boid) {
-    if (boid.position.x > screenWidth * 2.0f)
-            boid.position.x = -(screenHeight / 2);
-        else if (boid.position.x < -(screenWidth / 2))
-            boid.position.x = (screenWidth * 2.0f);
+    if (boid.position.x > 900)
+            boid.position.x = -900;
+        else if (boid.position.x < -900)
+            boid.position.x = 900;
 
-        if (boid.position.y > screenHeight * 2.0f)
-            boid.position.y = -(screenHeight / 2);
+        if (boid.position.y > 900)
+            boid.position.y = -900;
 
-        else if (boid.position.y < -(screenHeight / 2))
-            boid.position.y = (screenHeight * 2.0f);
+        else if (boid.position.y < -900)
+            boid.position.y = 900;
 }
 
 void InitWorld()
 {
-    camera.offset = (Vector2){screenWidth / 2.0f, screenHeight / 2.0f};
-    camera.target = (Vector2){screenWidth / 2.0f, screenHeight / 2.0f};
+    camera.offset = (Vector2){900/2.0f, 900/2.0f};
+    camera.target = (Vector2){0,0};
     camera.rotation = 0;
     camera.zoom = 1.0f;
 
@@ -84,11 +88,11 @@ void PopulateWorld()
     float velocityY;
     bool isAlive = false;
 
-    for (int i = 0; i < MAX_BOIDS; ++i)
+    for (int i = 0; i < MAX_BOIDS - 1; ++i)
     {
 
-        positionX = GetRandomValue(-(screenWidth / 2), screenWidth * 2);
-        positionY = GetRandomValue(-(screenHeight / 2), screenHeight * 2);
+        positionX = GetRandomValue(-900, 900);
+        positionY = GetRandomValue(-900, 900);
 
         velocityX = GetRandomValue(-BOID_SPEED, BOID_SPEED);
         velocityY = GetRandomValue(-BOID_SPEED, BOID_SPEED);
@@ -104,9 +108,10 @@ void PopulateWorld()
         boidsArray[i].velocity = (Vector2){velocityX, velocityY};
         boidsArray[i].maxSpeed = BOID_SPEED;
         boidsArray[i].repelRadius = BOID_REPEL_RADIUS;
-        boidsArray[i].id = i;
         boidsArray[i].repelStrength = BOID_REPEL_STRENGTH;
         boidsArray[i].boidRadius = BOID_BASE_SIZE;
+        boidsArray[i].id = i;
+        boidsArray[i].color = (Color) {GetRandomValue(0, 255), GetRandomValue(0, 255), GetRandomValue(0, 255), 255};
     }
 }
 
@@ -117,9 +122,9 @@ void DrawWorld()
     ClearBackground((Color){10, 10, 20, 100});
     BeginMode2D(camera);
  
-    for (int i = 0; i < MAX_BOIDS; ++i)
+    for (int i = 0; i < MAX_BOIDS - 1; ++i)
     {
-        DrawCircleV(boidsArray[i].position, boidsArray[i].boidRadius, RED);
+        DrawCircleV(boidsArray[i].position, boidsArray[i].boidRadius, boidsArray[i].color);
         
         boidsArray[i].position.x += boidsArray[i].velocity.x;
         boidsArray[i].position.y += boidsArray[i].velocity.y;

@@ -5,8 +5,8 @@
 #define MAX_BOIDS 100
 #define BOID_BASE_SIZE 10.0f
 #define BOID_SPEED 5.0f
-#define BOID_REPEL_STRENGTH 1.0f
-#define BOID_REPEL_RADIUS 60.0f
+#define BOID_REPEL_STRENGTH 2.0f
+#define BOID_REPEL_RADIUS 40.0f
 
 static Boid boidsArray[MAX_BOIDS] = {0};
 static Camera2D camera = {0};
@@ -58,13 +58,13 @@ void populateWorld()
 
     for (int i = 0; i < MAX_BOIDS; ++i)
     {
-        positionX = GetRandomValue(0, screenWidth);
-        positionY = GetRandomValue(0, screenHeight);
+        positionX = GetRandomValue(-(screenWidth / 2), screenWidth * 2);
+        positionY = GetRandomValue(-(screenHeight / 2), screenHeight * 2);
 
         velocityX = GetRandomValue(-BOID_SPEED, BOID_SPEED);
         velocityY = GetRandomValue(-BOID_SPEED, BOID_SPEED);
 
-        while (velocityX == 0 && velocityY == 0)
+        while (fabs(velocityX) != BOID_SPEED && fabs(velocityY) != BOID_SPEED)
         {
 
             velocityX = GetRandomValue(-BOID_SPEED, BOID_SPEED);

@@ -18,7 +18,7 @@ void Boid::moveBoid(const Boid flock[], int boidCount)
         if (distanceToOtherBoid < this->repelRadius)
         {
             Vector2 repelDirection = Vector2Normalize(Vector2Subtract(this->position, otherBoid.position));
-            Vector2 weightedVelocity = (Vector2){repelDirection.x / distanceToOtherBoid, repelDirection.y / distanceToOtherBoid};
+            Vector2 weightedVelocity = (Vector2){repelDirection.x / (distanceToOtherBoid + boidRadius), repelDirection.y / (distanceToOtherBoid + this->boidRadius)};
 
             repelVelocity = Vector2Scale(Vector2Add(repelVelocity, weightedVelocity), repelStrength);
             ++boidsInRange;

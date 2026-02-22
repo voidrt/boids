@@ -12,6 +12,7 @@ struct Boid
     float steerStrenght;
     float repelStrength;
     float repelRadius;
+    float boidRadius;
     int id;
 
     void moveBoid(const Boid flock[], int boidCount);

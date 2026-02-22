@@ -6,7 +6,7 @@
 #define BOID_BASE_SIZE 10.0f
 #define BOID_SPEED 5.0f
 #define BOID_REPEL_STRENGTH 2.0f
-#define BOID_REPEL_RADIUS 40.0f
+#define BOID_REPEL_RADIUS 20.0f
 
 static Boid boidsArray[MAX_BOIDS] = {0};
 static Camera2D camera = {0};
@@ -22,14 +22,29 @@ void HandleCameraControl(Camera2D &camera)
         camera.rotation += 2.0f;
 
     // Zoom
-    if (IsKeyDown(KEY_W))
-        camera.zoom += 0.1f;
-    if (IsKeyDown(KEY_S))
-        camera.zoom -= 0.1f;
+    if (IsKeyPressed(KEY_W))
+        camera.zoom += .1f;
+    if (IsKeyPressed(KEY_S))
+        camera.zoom -= .1f;
+    // Pan
+    if (IsKeyDown(KEY_RIGHT)) {
+        camera.offset.x -= 2.0f;
+    } 
+    if (IsKeyDown(KEY_LEFT)) {
+        camera.offset.x += 2.0f;
+    }
+    if (IsKeyDown(KEY_UP)) {
+        camera.offset.y += 2.0f;
+    } 
+    if (IsKeyDown(KEY_DOWN)) {
+        camera.offset.y -= 2.0f;
+    }
+    
 
-    if (camera.zoom > 6.0f)
+
+    if (camera.zoom > 10.0f)
     {
-        camera.zoom = 6.0f;
+        camera.zoom = 10.0f;
     }
     else if (camera.zoom < 0.2f)
     {
@@ -37,7 +52,20 @@ void HandleCameraControl(Camera2D &camera)
     }
 }
 
-void initWorld()
+void HandleBoidsOnScreenEdge(Boid &boid) {
+    if (boid.position.x > screenWidth * 2.0f)
+            boid.position.x = -(screenHeight / 2);
+        else if (boid.position.x < -(screenWidth / 2))
+            boid.position.x = (screenWidth * 2.0f);
+
+        if (boid.position.y > screenHeight * 2.0f)
+            boid.position.y = -(screenHeight / 2);
+
+        else if (boid.position.y < -(screenHeight / 2))
+            boid.position.y = (screenHeight * 2.0f);
+}
+
+void InitWorld()
 {
     camera.offset = (Vector2){screenWidth / 2.0f, screenHeight / 2.0f};
     camera.target = (Vector2){screenWidth / 2.0f, screenHeight / 2.0f};
@@ -48,7 +76,7 @@ void initWorld()
     SetTargetFPS(60);
 }
 
-void populateWorld()
+void PopulateWorld()
 {
     float positionX;
     float positionY;
@@ -58,6 +86,7 @@ void populateWorld()
 
     for (int i = 0; i < MAX_BOIDS; ++i)
     {
+
         positionX = GetRandomValue(-(screenWidth / 2), screenWidth * 2);
         positionY = GetRandomValue(-(screenHeight / 2), screenHeight * 2);
 
@@ -77,37 +106,27 @@ void populateWorld()
         boidsArray[i].repelRadius = BOID_REPEL_RADIUS;
         boidsArray[i].id = i;
         boidsArray[i].repelStrength = BOID_REPEL_STRENGTH;
+        boidsArray[i].boidRadius = BOID_BASE_SIZE;
     }
 }
 
-void drawWorld()
+void DrawWorld()
 {
     //!! ---- DRAWING
     BeginDrawing();
     ClearBackground((Color){10, 10, 20, 100});
     BeginMode2D(camera);
-    for (int i = 0; i < MAX_BOIDS; i++)
-    {
-        DrawCircleV(boidsArray[i].position, BOID_BASE_SIZE, RED);
-    }
-
+ 
     for (int i = 0; i < MAX_BOIDS; ++i)
     {
+        DrawCircleV(boidsArray[i].position, boidsArray[i].boidRadius, RED);
+        
         boidsArray[i].position.x += boidsArray[i].velocity.x;
         boidsArray[i].position.y += boidsArray[i].velocity.y;
 
         boidsArray[i].moveBoid(boidsArray, MAX_BOIDS);
 
-        if (boidsArray[i].position.x > screenWidth * 2.0f)
-            boidsArray[i].position.x = -(screenHeight / 2);
-        else if (boidsArray[i].position.x < -(screenWidth / 2))
-            boidsArray[i].position.x = (screenWidth * 2.0f);
-
-        if (boidsArray[i].position.y > screenHeight * 2.0f)
-            boidsArray[i].position.y = -(screenHeight / 2);
-
-        else if (boidsArray[i].position.y < -(screenHeight / 2))
-            boidsArray[i].position.y = (screenHeight * 2.0f);
+        HandleBoidsOnScreenEdge(boidsArray[i]);
     }
 
     EndMode2D();
@@ -117,15 +136,15 @@ void drawWorld()
 
 int main()
 {
-    initWorld();
-    populateWorld();
+    InitWorld();
+    PopulateWorld();
 
     if (IsWindowReady())
     {
         while (!WindowShouldClose())
         {
             HandleCameraControl(camera);
-            drawWorld();
+            DrawWorld();
         }
     }
 

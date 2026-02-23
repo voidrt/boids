@@ -1,16 +1,19 @@
 #include "boid.h"
+#include "../squoid/squoid.h"
 #include <raylib.h>
 #include <raymath.h>
-#include <iostream>
 
-void Boid::moveBoid(const Boid flock[], int boidCount)
+void Boid::SteerBoid(const Boid flock[], int boidCount, const Squoid squoids[], int squoidCount)
 {
     float boidsInRange;
+    float squoidsInSeparationRange;
     float boidsInSeparationRange;
     Vector2 separationVelocity = (Vector2){0.0f, 0.0f};
     Vector2 alignmentVelocity = (Vector2){0.0f, 0.0f};
     Vector2 cohesionVelocity = (Vector2){0.0f, 0.0f};
     Vector2 cohesionDirection = (Vector2){0.0f, 0.0f};
+    Vector2 squoidSeparationVelocity = (Vector2){0.0f, 0.0f};
+
     Vector2 totalBoidVelocity = {0};
 
     for (int i = 0; i < boidCount; ++i)
@@ -24,10 +27,12 @@ void Boid::moveBoid(const Boid flock[], int boidCount)
 
         if (distanceToOtherBoid < this->perceptionRadius && distanceToOtherBoid > 0.01f)
         {
+            cohesionDirection = Vector2Normalize(Vector2Subtract(otherBoid.position, this->position));
+
             if (distanceToOtherBoid < this->repelRadius)
             {
-                Vector2 repelDirection = Vector2Normalize(Vector2Subtract(this->position, otherBoid.position));
-                Vector2 wSeparationVelocity = Vector2Scale(repelDirection, 1 / distanceToOtherBoid);
+                Vector2 separationDirection = Vector2Normalize(Vector2Subtract(this->position, otherBoid.position));
+                Vector2 wSeparationVelocity = Vector2Scale(separationDirection, 1 / distanceToOtherBoid);
 
                 separationVelocity = Vector2Add(separationVelocity, wSeparationVelocity);
                 ++boidsInSeparationRange;
@@ -35,29 +40,40 @@ void Boid::moveBoid(const Boid flock[], int boidCount)
 
             alignmentVelocity = Vector2Add(alignmentVelocity, otherBoid.velocity);
 
-            cohesionDirection = Vector2Normalize(Vector2Subtract(otherBoid.position, this->position));
             cohesionVelocity = Vector2Add(cohesionVelocity, cohesionDirection);
 
             boidsInRange++;
         }
     }
 
-    if (boidsInRange > 0)
+    for (int j = 0; j < squoidCount; ++j)
     {
-        if (boidsInSeparationRange > 0)
+        Squoid squoid = squoids[j];
+        float distanceToSquoid = (Vector2Distance(this->position, squoid.position) + squoid.squoidRadius + this->boidRadius);
+
+        if (distanceToSquoid <= perceptionRadius * 3 && distanceToSquoid > 0.01f)
         {
-            separationVelocity = Vector2Scale(separationVelocity, 1 / boidsInSeparationRange);
-            separationVelocity = Vector2Scale(separationVelocity, this->repelStrength);
+            Vector2 squoidSeparationDirection = Vector2Normalize(Vector2Subtract(this->position, squoid.position));
+
+            Vector2 wSquoidSeparationVelocity = Vector2Scale(squoidSeparationDirection, 1 / distanceToSquoid);
+
+            squoidSeparationVelocity = Vector2Add(squoidSeparationVelocity, wSquoidSeparationVelocity);
+
+            squoidsInSeparationRange++;
         }
 
-        alignmentVelocity = Vector2Scale(Vector2Scale(alignmentVelocity, 1 / boidsInRange), this->alignmentStrength);
+        if (boidsInRange > 0)
+        {
 
-        cohesionVelocity = Vector2Scale(Vector2Scale(cohesionVelocity, 1 / boidsInRange), this->cohesionStrength);
+            alignmentVelocity = Vector2Scale(alignmentVelocity, 1 / boidsInRange);
 
-        totalBoidVelocity.x += (cohesionVelocity.x * 0.2) + separationVelocity.x + alignmentVelocity.x;
-        totalBoidVelocity.y += (cohesionVelocity.y * 0.2) + separationVelocity.y + alignmentVelocity.y;
+            cohesionVelocity = Vector2Scale(cohesionVelocity, 1 / boidsInRange);
+        }
 
-        this->velocity = Vector2ClampValue(Vector2Add(this->velocity, totalBoidVelocity), maxSpeed / 2, maxSpeed);
+        totalBoidVelocity.x += (cohesionVelocity.x * cohesionStrength) + (separationVelocity.x * separationStrength) + (alignmentVelocity.x * alignmentStrength) + (squoidSeparationVelocity.x * squoidSeparationStrength);
+        totalBoidVelocity.y += (cohesionVelocity.y * cohesionStrength) + (separationVelocity.y * separationStrength) + (alignmentVelocity.y * alignmentStrength) + (squoidSeparationVelocity.y * 2);
     }
+    this->velocity = Vector2ClampValue(Vector2Add(this->velocity, totalBoidVelocity), 0, maxSpeed);
+
     this->position = Vector2Add(this->position, this->velocity);
 }

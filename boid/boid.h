@@ -1,4 +1,5 @@
 #include <raylib.h>
+#include "../squoid/squoid.h"
 
 #ifndef BOID_H
 #define BOID_H
@@ -9,7 +10,8 @@ struct Boid
     Vector2 velocity;
     float rotation;
     float maxSpeed;
-    float repelStrength;
+    float squoidSeparationStrength;
+    float separationStrength;
     float alignmentStrength;
     float cohesionStrength;
     float repelRadius;
@@ -18,7 +20,7 @@ struct Boid
     int id;
     Color color;
 
-    void moveBoid(const Boid flock[], int boidCount);
+    void SteerBoid(const Boid flock[], int boidCount, const Squoid squoids[], int squoidCount);
 };
 
 #endif

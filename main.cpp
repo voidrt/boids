@@ -7,9 +7,9 @@
 
 #define MAX_BOIDS 300
 #define BOID_BASE_SIZE 10.0f
-#define BOID_SPEED 1.0f
-#define BOID_REPEL_STRENGTH 2.0f
-#define BOID_REPEL_RADIUS 100.0f
+#define BOID_SPEED 5.0f
+#define BOID_REPEL_STRENGTH 5.0f
+#define BOID_REPEL_RADIUS 60.0f
 
 static Boid boidsArray[MAX_BOIDS] = {0};
 static Camera2D camera = {0};
@@ -132,6 +132,7 @@ void DrawWorld()
         boidsArray[i].moveBoid(boidsArray, MAX_BOIDS);
 
         HandleBoidsOnScreenEdge(boidsArray[i]);
+        
     }
 
     EndMode2D();

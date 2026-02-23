@@ -9,9 +9,11 @@ struct Boid
     Vector2 velocity;
     float rotation;
     float maxSpeed;
-    float steerStrenght;
     float repelStrength;
+    float alignmentStrength;
+    float cohesionStrength;
     float repelRadius;
+    float perceptionRadius;
     float boidRadius;
     int id;
     Color color;

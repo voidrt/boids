@@ -49,7 +49,8 @@ void Boid::SteerBoid(const Boid flock[], int boidCount, const Squoid squoids[], 
     for (int j = 0; j < squoidCount; ++j)
     {
         Squoid squoid = squoids[j];
-        float distanceToSquoid = (Vector2Distance(this->position, squoid.position) + squoid.squoidRadius + this->boidRadius);
+
+        float distanceToSquoid = (Vector2Distance(this->position, squoid.position) - squoid.squoidRadius - this->boidRadius);
 
         if (distanceToSquoid <= perceptionRadius * 3 && distanceToSquoid > 0.01f)
         {

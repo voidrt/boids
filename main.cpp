@@ -203,9 +203,10 @@ void DrawWorld()
         DrawCircleV(squoidsArray[i].position, SQUOID_BASE_SIZE, squoidsArray[i].color);
 
         HandleSquoidsOnScreenEdge(squoidsArray[i]);
-
         squoidsArray[i].position.x += squoidsArray[i].velocity.x;
         squoidsArray[i].position.y += squoidsArray[i].velocity.y;
+
+        squoidsArray[i].MoveSquoid(squoidsArray, MAX_SQUOIDS);
     }
 
     EndMode2D();

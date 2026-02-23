@@ -11,6 +11,7 @@ struct Squoid
     float maxSpeed;
     float perceptionRadius;
     float squoidRadius;
+    float separationStrength;
     int id;
     Color color;
 

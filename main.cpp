@@ -4,21 +4,20 @@
 #include "squoid/squoid.h"
 
 #define MAX_BOIDS 1000
-#define BOID_SPEED 4.0f
+#define BOID_SPEED 12.0f
 #define BOID_BASE_SIZE 20.0f
 #define BOID_SEPARATION_RADIUS 80.0f
 #define BOID_PERCEPTION_RADIUS 150.0f
 #define BOID_SEPARATION_STRENGTH 10.0f
 #define BOID_TO_SQUOID_SEPARATION_STRENGTH 50.0f
-#define BOID_ALIGNMENT_STRENGTH 5.5f
-#define BOID_COHESION_STRENGTH 5.0f
+#define BOID_ALIGNMENT_STRENGTH 35.5f
+#define BOID_COHESION_STRENGTH 15.0f
 
-#define MAX_SQUOIDS 4
-#define SQUOID_SPEED 2.0f
+#define MAX_SQUOIDS 10
+#define SQUOID_SPEED 4.0f
 #define SQUOID_BASE_SIZE 80.0f
-#define SQUOID_SEPARATION_RADIUS 200.0f
-#define SQUOID_PERCEPTION_RADIUS 150.0f
-#define SQUOID_SEPARATION_STRENGTH 1000.0f
+#define SQUOID_PERCEPTION_RADIUS 640.0f
+#define SQUOID_SEPARATION_STRENGTH 15.0f
 
 static Boid boidsArray[MAX_BOIDS] = {0};
 static Squoid squoidsArray[MAX_SQUOIDS] = {0};
@@ -59,9 +58,9 @@ void HandleCameraControl(Camera2D &camera)
     {
         camera.zoom = 10.0f;
     }
-    else if (camera.zoom < 0.07f)
+    else if (camera.zoom < 0.1f)
     {
-        camera.zoom = 0.07f;
+        camera.zoom = 0.1f;
     }
 }
 
@@ -98,7 +97,7 @@ void InitWorld()
     camera.offset = (Vector2){(screenWidth / 2.0f) + BOID_BASE_SIZE, (screenHeight / 2.0f) + BOID_BASE_SIZE};
     camera.target = (Vector2){0, 0};
     camera.rotation = 0;
-    camera.zoom = 1.f;
+    camera.zoom = .1f;
     InitWindow(static_cast<int>(screenWidth), static_cast<int>(screenHeight), "Boids");
     SetTargetFPS(60);
 }
@@ -137,6 +136,7 @@ void PopulateWorld()
         boidsArray[i].perceptionRadius = BOID_PERCEPTION_RADIUS;
         boidsArray[i].boidRadius = BOID_BASE_SIZE;
         boidsArray[i].id = i;
+        boidsArray[i].isAlive = true;
         boidsArray[i].color = (Color){GetRandomValue(0, 255), GetRandomValue(0, 255), GetRandomValue(0, 255), 255};
     }
 
@@ -148,7 +148,7 @@ void PopulateWorld()
         velocityX = GetRandomValue(-(SQUOID_SPEED), SQUOID_SPEED);
         velocityY = GetRandomValue(-(SQUOID_SPEED), SQUOID_SPEED);
 
-        while (velocityX < 0.1f && velocityY == 0.1f)
+        while (velocityX == 0.f && velocityY == 0.f)
         {
             velocityX = GetRandomValue(-SQUOID_SPEED, SQUOID_SPEED);
             velocityY = GetRandomValue(-SQUOID_SPEED, SQUOID_SPEED);
@@ -159,35 +159,29 @@ void PopulateWorld()
         squoidsArray[j].maxSpeed = SQUOID_SPEED;
         squoidsArray[j].perceptionRadius = SQUOID_PERCEPTION_RADIUS;
         squoidsArray[j].squoidRadius = SQUOID_BASE_SIZE;
+        squoidsArray[j].separationStrength = SQUOID_SEPARATION_STRENGTH;
+        squoidsArray[j].rotation = 0;
         squoidsArray[j].id = j + 101;
         squoidsArray[j].color = (Color){93, 110, 126, 255};
     }
 }
 
-void DrawWorld()
+void DrawEntities()
 {
-
-    BeginDrawing();
-
-    ClearBackground((Color){2, 2, 20, 255});
-
-    BeginMode2D(camera);
 
     for (int i = 0; i < MAX_BOIDS - 1; ++i)
     {
-
-        float facingAngle = atan2f(boidsArray[i].velocity.y, boidsArray[i].velocity.x);
-
+        if (!boidsArray[i].isAlive)
+        {
+            continue;
+        }
         Vector2 v1, v2, v3;
 
-        v1 = Vector2Add(Vector2Rotate((Vector2){BOID_BASE_SIZE, 0.0f}, facingAngle), boidsArray[i].position);
-        v2 = Vector2Add(Vector2Rotate((Vector2){-(BOID_BASE_SIZE) / 2, -BOID_BASE_SIZE / 3}, facingAngle), boidsArray[i].position);
-        v3 = Vector2Add(Vector2Rotate((Vector2){-(BOID_BASE_SIZE) / 2, BOID_BASE_SIZE / 3}, facingAngle), boidsArray[i].position);
+        v1 = Vector2Add(Vector2Rotate((Vector2){BOID_BASE_SIZE, 0.0f}, boidsArray[i].rotation), boidsArray[i].position);
+        v2 = Vector2Add(Vector2Rotate((Vector2){-(BOID_BASE_SIZE) / 2, -BOID_BASE_SIZE / 3}, boidsArray[i].rotation), boidsArray[i].position);
+        v3 = Vector2Add(Vector2Rotate((Vector2){-(BOID_BASE_SIZE) / 2, BOID_BASE_SIZE / 3}, boidsArray[i].rotation), boidsArray[i].position);
 
         DrawTriangle(v1, v2, v3, boidsArray[i].color);
-
-        boidsArray[i].position.x += boidsArray[i].velocity.x;
-        boidsArray[i].position.y += boidsArray[i].velocity.y;
 
         boidsArray[i].SteerBoid(boidsArray, MAX_BOIDS, squoidsArray, MAX_SQUOIDS);
 
@@ -196,21 +190,18 @@ void DrawWorld()
 
     for (int i = 0; i < MAX_SQUOIDS; ++i)
     {
-        float facingAngle = atan2f(squoidsArray[i].velocity.y, squoidsArray[i].velocity.x);
+        squoidsArray[i].MoveSquoid(squoidsArray, MAX_SQUOIDS);
 
-        Vector2 v1, v2, v3, v4;
+        Rectangle squoidBody = {
+            squoidsArray[i].position.x,
+            squoidsArray[i].position.y,
+            squoidsArray[i].squoidRadius * 2,
+            squoidsArray[i].squoidRadius / 1.5};
 
-        DrawCircleV(squoidsArray[i].position, SQUOID_BASE_SIZE, squoidsArray[i].color);
+        DrawRectanglePro(squoidBody, (Vector2){squoidBody.width / 2, squoidBody.height / 2}, squoidsArray[i].rotation, squoidsArray[i].color);
 
         HandleSquoidsOnScreenEdge(squoidsArray[i]);
-        squoidsArray[i].position.x += squoidsArray[i].velocity.x;
-        squoidsArray[i].position.y += squoidsArray[i].velocity.y;
-
-        squoidsArray[i].MoveSquoid(squoidsArray, MAX_SQUOIDS);
     }
-
-    EndMode2D();
-    EndDrawing();
 }
 
 int main()
@@ -222,16 +213,32 @@ int main()
     {
         while (!WindowShouldClose())
         {
+            int deadBoids = 0;
             HandleCameraControl(camera);
-            DrawWorld();
+            for (int d = 0; d < MAX_BOIDS; ++d)
+            {
+                if (!boidsArray[d].isAlive)
+                {
+                    deadBoids++;
+                }
+            }
+
             if (IsKeyDown(KEY_G))
-            {
                 camera.target = boidsArray[0].position;
-            }
             else if (IsKeyDown(KEY_B))
-            {
                 camera.target = squoidsArray[0].position;
-            }
+
+            BeginDrawing();
+
+            ClearBackground((Color){2, 2, 20, 255});
+
+            BeginMode2D(camera);
+
+            DrawEntities();
+            DrawText(TextFormat("Boids currently alive: %02i", (MAX_BOIDS - deadBoids)), -worldWidth, -worldHeight - 500, 200, RAYWHITE);
+
+            EndMode2D();
+            EndDrawing();
         }
     }
 

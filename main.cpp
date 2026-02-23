@@ -4,12 +4,11 @@
 #include <iostream>
 #include <map>
 
-
 #define MAX_BOIDS 300
 #define BOID_BASE_SIZE 10.0f
-#define BOID_SPEED 5.0f
-#define BOID_REPEL_STRENGTH 5.0f
-#define BOID_REPEL_RADIUS 60.0f
+#define BOID_SPEED 3.0f
+#define BOID_REPEL_STRENGTH 200.0f
+#define BOID_REPEL_RADIUS 80.0f
 
 static Boid boidsArray[MAX_BOIDS] = {0};
 static Camera2D camera = {0};
@@ -20,31 +19,33 @@ void HandleCameraControl(Camera2D &camera)
 {
 
     // Rotation
-    if (IsKeyDown(KEY_A))
+    if (IsKeyDown(KEY_RIGHT))
         camera.rotation -= 2.0f;
-    if (IsKeyDown(KEY_D))
+    if (IsKeyDown(KEY_LEFT))
         camera.rotation += 2.0f;
 
     // Zoom
-    if (IsKeyPressed(KEY_W))
+    if (IsKeyPressed(KEY_UP))
         camera.zoom += .1f;
-    if (IsKeyPressed(KEY_S))
+    if (IsKeyPressed(KEY_DOWN))
         camera.zoom -= .1f;
     // Pan
-    if (IsKeyDown(KEY_RIGHT)) {
+    if (IsKeyDown(KEY_D))
+    {
         camera.offset.x -= 2.0f;
-    } 
-    if (IsKeyDown(KEY_LEFT)) {
+    }
+    if (IsKeyDown(KEY_A))
+    {
         camera.offset.x += 2.0f;
     }
-    if (IsKeyDown(KEY_UP)) {
+    if (IsKeyDown(KEY_W))
+    {
         camera.offset.y += 2.0f;
-    } 
-    if (IsKeyDown(KEY_DOWN)) {
+    }
+    if (IsKeyDown(KEY_S))
+    {
         camera.offset.y -= 2.0f;
     }
-    
-
 
     if (camera.zoom > 10.0f)
     {
@@ -56,23 +57,24 @@ void HandleCameraControl(Camera2D &camera)
     }
 }
 
-void HandleBoidsOnScreenEdge(Boid &boid) {
+void HandleBoidsOnScreenEdge(Boid &boid)
+{
     if (boid.position.x > 900)
-            boid.position.x = -900;
-        else if (boid.position.x < -900)
-            boid.position.x = 900;
+        boid.position.x = -900;
+    else if (boid.position.x < -900)
+        boid.position.x = 900;
 
-        if (boid.position.y > 900)
-            boid.position.y = -900;
+    if (boid.position.y > 900)
+        boid.position.y = -900;
 
-        else if (boid.position.y < -900)
-            boid.position.y = 900;
+    else if (boid.position.y < -900)
+        boid.position.y = 900;
 }
 
 void InitWorld()
 {
-    camera.offset = (Vector2){900/2.0f, 900/2.0f};
-    camera.target = (Vector2){0,0};
+    camera.offset = (Vector2){900 / 2.0f, 900 / 2.0f};
+    camera.target = (Vector2){0, 0};
     camera.rotation = 0;
     camera.zoom = 1.0f;
 
@@ -111,7 +113,7 @@ void PopulateWorld()
         boidsArray[i].repelStrength = BOID_REPEL_STRENGTH;
         boidsArray[i].boidRadius = BOID_BASE_SIZE;
         boidsArray[i].id = i;
-        boidsArray[i].color = (Color) {GetRandomValue(0, 255), GetRandomValue(0, 255), GetRandomValue(0, 255), 255};
+        boidsArray[i].color = (Color){GetRandomValue(0, 255), GetRandomValue(0, 255), GetRandomValue(0, 255), 255};
     }
 }
 
@@ -121,18 +123,17 @@ void DrawWorld()
     BeginDrawing();
     ClearBackground((Color){10, 10, 20, 100});
     BeginMode2D(camera);
- 
+
     for (int i = 0; i < MAX_BOIDS - 1; ++i)
     {
         DrawCircleV(boidsArray[i].position, boidsArray[i].boidRadius, boidsArray[i].color);
-        
+
         boidsArray[i].position.x += boidsArray[i].velocity.x;
         boidsArray[i].position.y += boidsArray[i].velocity.y;
 
         boidsArray[i].moveBoid(boidsArray, MAX_BOIDS);
 
         HandleBoidsOnScreenEdge(boidsArray[i]);
-        
     }
 
     EndMode2D();

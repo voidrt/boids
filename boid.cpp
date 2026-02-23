@@ -7,9 +7,8 @@ void Boid::moveBoid(const Boid flock[], int boidCount)
 {
     float boidsInRange;
     Vector2 repelVelocity = (Vector2){0.0f, 0.0f};
-    Vector2 cohesionForce =  (Vector2) {0.0f, 0.0f};
-    Vector2 alignmentForce = (Vector2) {0.0f, 0.0f};
-
+    Vector2 cohesionForce = (Vector2){0.0f, 0.0f};
+    Vector2 alignmentForce = (Vector2){0.0f, 0.0f};
 
     for (int i = 0; i < boidCount; ++i)
     {
@@ -23,7 +22,7 @@ void Boid::moveBoid(const Boid flock[], int boidCount)
             Vector2 repelDirection = Vector2Normalize(Vector2Subtract(this->position, otherBoid.position));
             Vector2 weightedVelocity = (Vector2){repelDirection.x / distanceToOtherBoid, repelDirection.y / distanceToOtherBoid};
 
-            repelVelocity = Vector2Scale(Vector2Add(repelVelocity, weightedVelocity), repelStrength);
+            repelVelocity = Vector2Add(repelVelocity, weightedVelocity);
 
             ++boidsInRange;
         }
@@ -31,14 +30,10 @@ void Boid::moveBoid(const Boid flock[], int boidCount)
 
     if (boidsInRange > 0)
     {
-        repelVelocity = (Vector2) {repelVelocity.x / boidsInRange, repelVelocity.y/boidsInRange};
-        this->velocity = Vector2Scale(
-            Vector2Normalize(
-                Vector2Add(velocity, repelVelocity)
-            ), 
-            maxSpeed
-        );
-            
+        repelVelocity = Vector2Scale(repelVelocity, 1 / boidsInRange);
+        repelVelocity = Vector2Scale(repelVelocity, repelStrength);
+        this->velocity =
+            Vector2ClampValue(Vector2Add(velocity, repelVelocity), maxSpeed / 2, maxSpeed);
     }
-    this->position = Vector2Add(this->position, Vector2Scale(this->velocity, GetFrameTime()));
+    this->position = Vector2Add(this->position, this->velocity);
 }

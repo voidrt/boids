@@ -6,11 +6,9 @@
 void Boid::SteerBoid(const Boid flock[], int boidCount, const Squoid squoids[], int squoidCount)
 {
     float boidsInRange;
-    float squoidsInSeparationRange;
     Vector2 separationAcceleration = (Vector2){0.0f, 0.0f};
     Vector2 alignmentAcceleration = (Vector2){0.0f, 0.0f};
     Vector2 cohesionAcceleration = (Vector2){0.0f, 0.0f};
-    Vector2 cohesionDirection = (Vector2){0.0f, 0.0f};
     Vector2 squoidSeparationAcceleration = (Vector2){0.0f, 0.0f};
 
     Vector2 totalBoidAcceleration = {0};
@@ -22,27 +20,34 @@ void Boid::SteerBoid(const Boid flock[], int boidCount, const Squoid squoids[], 
 
     for (int i = 0; i < boidCount; ++i)
     {
-        Boid otherBoid = flock[i];
 
-        if (this->id == otherBoid.id)
+        if (this->id == flock[i].id)
             continue;
-        if (!otherBoid.isAlive)
+        if (!flock[i].isAlive)
             continue;
-        float distanceToOtherBoid = Vector2Distance(otherBoid.position, this->position);
 
-        if (distanceToOtherBoid < this->perceptionRadius && distanceToOtherBoid > 0.01f)
+        float distanceToFlock = Vector2Distance(flock[i].position, this->position) - this->boidSize;
+
+        if (distanceToFlock < this->perceptionRadius && distanceToFlock > 0.01f)
         {
-            cohesionDirection = Vector2Normalize(Vector2Subtract(otherBoid.position, this->position));
+            Vector2 cohesionDirection = Vector2Normalize(Vector2Subtract(flock[i].position, this->position));
 
-            if (distanceToOtherBoid < this->repelRadius)
+            if (distanceToFlock < this->repelRadius && distanceToFlock > 1.0f)
             {
-                Vector2 separationDirection = Vector2Normalize(Vector2Subtract(this->position, otherBoid.position));
-                Vector2 wSeparationAccel = Vector2Scale(separationDirection, 1 / distanceToOtherBoid);
+                Vector2 separationDirection = Vector2Scale(cohesionDirection, -1);
+                Vector2 wSeparationAccel = Vector2Scale(separationDirection, 1 / distanceToFlock);
 
                 separationAcceleration = Vector2Add(separationAcceleration, wSeparationAccel);
             }
+            else if (distanceToFlock < 1.0f)
+            {
+                float artificialAccelerationX = GetRandomValue(-maxSpeed / 4, maxSpeed / 4);
+                float artificialAccelerationY = GetRandomValue(-maxSpeed / 4, maxSpeed / 4);
 
-            alignmentAcceleration = Vector2Add(alignmentAcceleration, otherBoid.velocity);
+                separationAcceleration = Vector2Add(separationAcceleration, (Vector2){artificialAccelerationX, artificialAccelerationY});
+            }
+
+            alignmentAcceleration = Vector2Add(alignmentAcceleration, flock[i].velocity);
 
             cohesionAcceleration = Vector2Add(cohesionAcceleration, cohesionDirection);
 
@@ -54,20 +59,19 @@ void Boid::SteerBoid(const Boid flock[], int boidCount, const Squoid squoids[], 
     {
         Squoid squoid = squoids[j];
 
-        float distanceToSquoid = (Vector2Distance(this->position, squoid.position) - squoid.squoidRadius - this->boidRadius);
+        float distanceToSquoid = (Vector2Distance(this->position, squoid.position) - squoid.squoidRadius - this->boidSize);
 
-        if (distanceToSquoid <= perceptionRadius * 3 && distanceToSquoid > 0.01f)
+        if (distanceToSquoid <= perceptionRadius * 4 && distanceToSquoid > 0.1f)
         {
             Vector2 squoidSeparationDirection = Vector2Normalize(Vector2Subtract(this->position, squoid.position));
 
-            Vector2 wSquoidSeparationVelocity = Vector2Scale(squoidSeparationDirection, 1 / (distanceToSquoid * 0.33f));
+            Vector2 wSquoidSeparationVelocity = Vector2Scale(squoidSeparationDirection, 1 / (distanceToSquoid * 0.4));
 
             squoidSeparationAcceleration = Vector2Add(squoidSeparationAcceleration, wSquoidSeparationVelocity);
 
-            if (distanceToSquoid < squoid.squoidRadius /2 )
+            if (distanceToSquoid < squoid.squoidRadius / 2)
             {
                 this->isAlive = false;
-                
             }
         }
     }
@@ -75,7 +79,7 @@ void Boid::SteerBoid(const Boid flock[], int boidCount, const Squoid squoids[], 
     if (boidsInRange > 0)
     {
         alignmentAcceleration = Vector2Scale(alignmentAcceleration, 1 / boidsInRange);
-        cohesionAcceleration = Vector2Scale(cohesionAcceleration, 1 / boidsInRange);
+        cohesionAcceleration = Vector2Scale(cohesionAcceleration, 0.1 / boidsInRange);
     }
 
     cohesionAcceleration = Vector2Scale(cohesionAcceleration, cohesionStrength);
@@ -85,7 +89,7 @@ void Boid::SteerBoid(const Boid flock[], int boidCount, const Squoid squoids[], 
 
     totalBoidAcceleration.x += cohesionAcceleration.x + alignmentAcceleration.x + separationAcceleration.x + squoidSeparationAcceleration.x;
 
-    totalBoidAcceleration.y +=cohesionAcceleration.y + alignmentAcceleration.y + separationAcceleration.y + squoidSeparationAcceleration.y;
+    totalBoidAcceleration.y += cohesionAcceleration.y + alignmentAcceleration.y + separationAcceleration.y + squoidSeparationAcceleration.y;
 
     this->velocity = Vector2ClampValue(Vector2Add(this->velocity, totalBoidAcceleration), 0, maxSpeed);
 

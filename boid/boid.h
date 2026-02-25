@@ -6,7 +6,8 @@
 
 struct Boid
 {
-    bool isAlive;
+    bool isAlive = true;
+
     Vector2 position;
     Vector2 velocity;
     float rotation;
@@ -17,7 +18,7 @@ struct Boid
     float cohesionStrength;
     float repelRadius;
     float perceptionRadius;
-    float boidRadius;
+    float boidSize;
     int id;
     Color color;
 

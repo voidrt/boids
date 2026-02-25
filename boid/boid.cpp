@@ -39,13 +39,6 @@ void Boid::SteerBoid(const Boid flock[], int boidCount, const Squoid squoids[], 
 
                 separationAcceleration = Vector2Add(separationAcceleration, wSeparationAccel);
             }
-            else if (distanceToFlock < 1.0f)
-            {
-                float artificialAccelerationX = GetRandomValue(-maxSpeed / 4, maxSpeed / 4);
-                float artificialAccelerationY = GetRandomValue(-maxSpeed / 4, maxSpeed / 4);
-
-                separationAcceleration = Vector2Add(separationAcceleration, (Vector2){artificialAccelerationX, artificialAccelerationY});
-            }
 
             alignmentAcceleration = Vector2Add(alignmentAcceleration, flock[i].velocity);
 

@@ -1,5 +1,10 @@
+using namespace std;
 #include <raylib.h>
 #include "../squoid/squoid.h"
+#include <unordered_map>
+#include <string>
+#include <cmath>
+#include <vector>
 
 #ifndef BOID_H
 #define BOID_H
@@ -18,11 +23,11 @@ struct Boid
     float cohesionStrength;
     float repelRadius;
     float perceptionRadius;
-    float boidSize;
+    float size;
     int id;
     Color color;
 
-    void SteerBoid(const Boid flock[], int boidCount, const Squoid squoids[], int squoidCount);
+    void SteerBoid(const Boid flock[], const int boidCount, const Squoid squoids[], int squoidCount, const unordered_map<string, vector<int>> &worldGrid);
 };
 
 #endif

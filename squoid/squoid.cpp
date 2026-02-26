@@ -13,14 +13,13 @@ void Squoid::MoveSquoid(
 
     for (int k = 0; k < squoidCount; ++k)
     {
-        float distanceToSquoid = Vector2Distance(this->position, squoids[k].position) - this->squoidRadius - squoids[k].squoidRadius;
+        float distanceToSquoid = Vector2Distance(this->position, squoids[k].position) - this->squoidSize - squoids[k].squoidSize;
 
-        if (distanceToSquoid < this->perceptionRadius && distanceToSquoid > 0.01f)
+        if (distanceToSquoid < this->perceptionRadius)
         {
             Vector2 squoidSeparationDirection = Vector2Normalize(Vector2Subtract(this->position, squoids[k].position));
 
-            Vector2 wSquoidSeparationVelocity = Vector2Scale(squoidSeparationDirection, 1 /
-                                                                                            (distanceToSquoid * 0.1f));
+            Vector2 wSquoidSeparationVelocity = squoidSeparationDirection * (1 / distanceToSquoid * 10);
 
             squoidSeparationAcceleration = Vector2Add(squoidSeparationAcceleration, wSquoidSeparationVelocity);
         }

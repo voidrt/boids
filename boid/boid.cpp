@@ -1,9 +1,13 @@
+using namespace std;
 #include "boid.h"
 #include "../squoid/squoid.h"
 #include <raylib.h>
 #include <raymath.h>
+#include <unordered_map>
+#include <string>
+#include <vector>
 
-void Boid::SteerBoid(const Boid flock[], int boidCount, const Squoid squoids[], int squoidCount)
+void Boid::SteerBoid(const Boid flock[], int boidCount, const Squoid squoids[], int squoidCount, const unordered_map<string, vector<int>> &worldGrid)
 {
     float boidsInRange;
     Vector2 separationAcceleration = (Vector2){0.0f, 0.0f};
@@ -26,46 +30,32 @@ void Boid::SteerBoid(const Boid flock[], int boidCount, const Squoid squoids[], 
         if (!flock[i].isAlive)
             continue;
 
-        float distanceToFlock = Vector2Distance(flock[i].position, this->position) - this->boidSize;
+        float distanceToFlockSqr = Vector2DistanceSqr(flock[i].position, this->position) - this->size;
 
-        if (distanceToFlock < this->perceptionRadius && distanceToFlock > 0.01f)
+        if (distanceToFlockSqr < (this->perceptionRadius * this->perceptionRadius) && distanceToFlockSqr > 6)
         {
+            boidsInRange++;
+
             Vector2 cohesionDirection = Vector2Normalize(Vector2Subtract(flock[i].position, this->position));
 
-            if (distanceToFlock < this->repelRadius && distanceToFlock > 1.0f)
+            if (distanceToFlockSqr < (this->repelRadius * this->repelRadius) && distanceToFlockSqr > 6)
             {
                 Vector2 separationDirection = Vector2Scale(cohesionDirection, -1);
-                Vector2 wSeparationAccel = Vector2Scale(separationDirection, 1 / distanceToFlock);
+                Vector2 wSeparationAccel = Vector2Scale(separationDirection, 1 / sqrt(distanceToFlockSqr));
 
                 separationAcceleration = Vector2Add(separationAcceleration, wSeparationAccel);
+            }
+            else if (distanceToFlockSqr <= 6)
+            {
+                float jitter = this->maxSpeed / 2;
+                Vector2 randomMovement = (Vector2){(float)GetRandomValue(-jitter, jitter), (float)GetRandomValue(-jitter, jitter)};
+
+                this->velocity += Vector2Add(randomMovement, Vector2Scale(flock[i].velocity, 1 / 5));
             }
 
             alignmentAcceleration = Vector2Add(alignmentAcceleration, flock[i].velocity);
 
             cohesionAcceleration = Vector2Add(cohesionAcceleration, cohesionDirection);
-
-            boidsInRange++;
-        }
-    }
-
-    for (int j = 0; j < squoidCount; ++j)
-    {
-        Squoid squoid = squoids[j];
-
-        float distanceToSquoid = (Vector2Distance(this->position, squoid.position) - squoid.squoidRadius - this->boidSize);
-
-        if (distanceToSquoid <= perceptionRadius * 4 && distanceToSquoid > 0.1f)
-        {
-            Vector2 squoidSeparationDirection = Vector2Normalize(Vector2Subtract(this->position, squoid.position));
-
-            Vector2 wSquoidSeparationVelocity = Vector2Scale(squoidSeparationDirection, 1 / (distanceToSquoid * 0.4));
-
-            squoidSeparationAcceleration = Vector2Add(squoidSeparationAcceleration, wSquoidSeparationVelocity);
-
-            if (distanceToSquoid < squoid.squoidRadius / 2)
-            {
-                this->isAlive = false;
-            }
         }
     }
 
@@ -75,10 +65,37 @@ void Boid::SteerBoid(const Boid flock[], int boidCount, const Squoid squoids[], 
         cohesionAcceleration = Vector2Scale(cohesionAcceleration, 0.1 / boidsInRange);
     }
 
-    cohesionAcceleration = Vector2Scale(cohesionAcceleration, cohesionStrength);
-    alignmentAcceleration = Vector2Scale(alignmentAcceleration, alignmentStrength);
-    separationAcceleration = Vector2Scale(separationAcceleration, separationStrength);
-    squoidSeparationAcceleration = Vector2Scale(squoidSeparationAcceleration, squoidSeparationStrength);
+    for (int j = 0; j < squoidCount; ++j)
+    {
+        Squoid squoid = squoids[j];
+
+        float distanceToSquoidSqr = (Vector2DistanceSqr(this->position, squoid.position) - squoid.squoidSize - this->size);
+
+        if (distanceToSquoidSqr <= (this->perceptionRadius * this->perceptionRadius * 2) && distanceToSquoidSqr > 6)
+        {
+            Vector2 squoidSeparationDirection = Vector2Normalize(Vector2Subtract(this->position, squoid.position));
+
+            Vector2 wSquoidSeparationVelocity = Vector2Scale(squoidSeparationDirection, 1 / sqrt(distanceToSquoidSqr));
+
+            squoidSeparationAcceleration = Vector2Add(squoidSeparationAcceleration, wSquoidSeparationVelocity);
+
+            if (distanceToSquoidSqr < (this->repelRadius * this->repelRadius) + (squoid.squoidSize * squoid.squoidSize))
+            {
+                cohesionAcceleration = Vector2Zero();
+                separationAcceleration = Vector2Zero();
+            }
+
+            if (distanceToSquoidSqr < (squoid.squoidSize * squoid.squoidSize))
+            {
+                this->isAlive = false;
+            }
+        }
+    }
+
+    cohesionAcceleration *= cohesionStrength;
+    alignmentAcceleration *= alignmentStrength;
+    separationAcceleration *= separationStrength;
+    squoidSeparationAcceleration *= squoidSeparationStrength;
 
     totalBoidAcceleration.x += cohesionAcceleration.x + alignmentAcceleration.x + separationAcceleration.x + squoidSeparationAcceleration.x;
 

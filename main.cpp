@@ -10,7 +10,7 @@ using namespace std;
 #include "boid/boid.h"
 #include "squoid/squoid.h"
 
-#define MAX_BOIDS 2000
+#define MAX_BOIDS 1400
 #define BOID_SPEED 8.0f
 #define BOID_BASE_SIZE 20.0f
 #define BOID_SEPARATION_RADIUS 40.0f
@@ -173,27 +173,34 @@ void UpdateGame(void)
 {
     worldGrid.clear();
 
-    for (int i = 0; i < MAX_BOIDS; ++i)
+    for (int i = 0; i < MAX_BOIDS; i++)
     {
         if (!boidsArray[i].isAlive)
         {
             continue;
         }
 
-        // boidsArray[i].SteerBoid(boidsArray, MAX_BOIDS, squoidsArray, MAX_SQUOIDS);
-        // HandleBoidsOnScreenEdge(boidsArray[i]);
+        
+        int cellX = (int)std::floor(boidsArray[i].position.x / 480.0f);
+        int cellY = (int)std::floor(boidsArray[i].position.y / 480.0f);
 
-        Vector2 boidPositionInGrid = (Vector2){(int)floor(boidsArray[i].position.x / cellSize), (int)floor(boidsArray[i].position.y / cellSize)};
-
-        string cellHash = to_string(boidPositionInGrid.x) + "," + to_string(boidPositionInGrid.y);
-
-        worldGrid[cellHash].push_back(boidsArray[i].id);
+        string cellHash = to_string(cellX) + "," + to_string(cellY);
+        
+        worldGrid[cellHash].push_back(i);
+       
     }
-    // for (int i = 0; i < MAX_SQUOIDS; ++i)
-    // {
-    //     squoidsArray[i].MoveSquoid(squoidsArray, MAX_SQUOIDS);
-    //     HandleSquoidsOnScreenEdge(squoidsArray[i]);
-    // }
+
+
+    for (Boid &boid : boidsArray){
+         
+        boid.MoveBoid(boidsArray, MAX_BOIDS, squoidsArray, MAX_SQUOIDS, worldGrid);
+        HandleBoidsOnScreenEdge(boid);
+    }
+    for (int i = 0; i < MAX_SQUOIDS; ++i)
+    {
+        squoidsArray[i].MoveSquoid(squoidsArray, MAX_SQUOIDS);
+        HandleSquoidsOnScreenEdge(squoidsArray[i]);
+    }
 }
 
 void DrawGame(void)
@@ -203,6 +210,21 @@ void DrawGame(void)
     BeginMode2D(camera);
 
     DrawText(TextFormat("FPS: %d", GetFPS()), -WORLD_WIDTH, -WORLD_HEIGHT - 500, 200, RAYWHITE);
+
+    for (const auto &cell : worldGrid) {
+        string cellName = cell.first;
+        vector<int> boidIDs = cell.second;
+
+        size_t commaPosition = cellName.find(',');
+        int gridX = std::stoi(cellName.substr(0, commaPosition));
+        int gridY = std::stoi(cellName.substr(commaPosition + 1));
+        Vector2 cellPosition = (Vector2) {gridX * BOID_PERCEPTION_RADIUS, gridY * BOID_PERCEPTION_RADIUS};
+
+
+        std::cout << gridX << ' ' << gridY << endl;
+
+        DrawText(TextFormat("Cell "), cellPosition.x + 30, cellPosition.y + 30, 50, RAYWHITE );
+    }
 
     for (int i = 0; i < MAX_BOIDS; ++i)
     {
@@ -228,17 +250,17 @@ void DrawGame(void)
         DrawTriangle(v1, v2, v3, boidsArray[i].color);
     }
 
-    for (int i = 0; i < MAX_SQUOIDS; ++i)
-    {
+    // for (int i = 0; i < MAX_SQUOIDS; ++i)
+    // {
 
-        Rectangle squoidBody = {
-            squoidsArray[i].position.x,
-            squoidsArray[i].position.y,
-            squoidsArray[i].squoidSize * 2.f,
-            squoidsArray[i].squoidSize / 1.5f,
-        };
-        DrawRectanglePro(squoidBody, (Vector2){squoidBody.width / 2, squoidBody.height / 2}, squoidsArray[i].rotation, squoidsArray[i].color);
-    }
+    //     Rectangle squoidBody = {
+    //         squoidsArray[i].position.x,
+    //         squoidsArray[i].position.y,
+    //         squoidsArray[i].squoidSize * 2.f,
+    //         squoidsArray[i].squoidSize / 1.5f,
+    //     };
+    //     DrawRectanglePro(squoidBody, (Vector2){squoidBody.width / 2, squoidBody.height / 2}, squoidsArray[i].rotation, squoidsArray[i].color);
+    // }
 
     EndMode2D();
     EndDrawing();

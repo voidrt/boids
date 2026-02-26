@@ -27,7 +27,7 @@ struct Boid
     int id;
     Color color;
 
-    void SteerBoid(const Boid flock[], const int boidCount, const Squoid squoids[], int squoidCount, const unordered_map<string, vector<int>> &worldGrid);
+    void MoveBoid(const Boid flock[], const int boidCount, const Squoid squoids[], int squoidCount, const unordered_map<string, vector<int>> &worldGrid);
 };
 
 #endif

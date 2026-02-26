@@ -99,7 +99,7 @@ void InitWorld(void)
 {
     camera.offset = (Vector2){(SCREEN_WIDTH / 2.0f) + BOID_BASE_SIZE, (SCREEN_HEIGHT / 2.0f) + BOID_BASE_SIZE};
     camera.target = (Vector2){0, 0};
-    camera.zoom = .1f;
+    camera.zoom = 1.f;
 
     InitWindow(static_cast<int>(SCREEN_WIDTH), static_cast<int>(SCREEN_HEIGHT), "Boids swimming");
     SetTargetFPS(60);
@@ -224,6 +224,7 @@ void DrawGame(void)
         std::cout << gridX << ' ' << gridY << endl;
 
         DrawText(TextFormat("Cell "), cellPosition.x + 30, cellPosition.y + 30, 50, RAYWHITE );
+        DrawRectangleLines(cellPosition.x, cellPosition.y, BOID_PERCEPTION_RADIUS,BOID_PERCEPTION_RADIUS,RAYWHITE);
     }
 
     for (int i = 0; i < MAX_BOIDS; ++i)

@@ -10,15 +10,15 @@ using namespace std;
 #include "boid/boid.h"
 #include "squoid/squoid.h"
 
-#define MAX_BOIDS 1400
-#define BOID_SPEED 8.0f
+#define MAX_BOIDS 2000
+#define BOID_SPEED 18.0f
 #define BOID_BASE_SIZE 20.0f
 #define BOID_SEPARATION_RADIUS 40.0f
 #define BOID_PERCEPTION_RADIUS 340.0f
 #define BOID_TO_SQUOID_SEPARATION_STRENGTH 60.0f
-#define BOID_SEPARATION_STRENGTH 35.0f
-#define BOID_ALIGNMENT_STRENGTH 15.5f
-#define BOID_COHESION_STRENGTH 17.5f
+#define BOID_SEPARATION_STRENGTH 3.0f
+#define BOID_ALIGNMENT_STRENGTH 70.5f
+#define BOID_COHESION_STRENGTH 1.5f
 
 #define MAX_SQUOIDS 8
 #define SQUOID_SPEED 3.0f
@@ -39,6 +39,7 @@ static Squoid squoidsArray[MAX_SQUOIDS] = {0};
 static Camera2D camera = Camera2D();
 static int selectedBoid = 0;
 static bool showDebugRadius = false;
+static bool showWorldGrid = false;
 
 void HandleCameraControl(Camera2D &camera)
 {
@@ -63,8 +64,10 @@ void HandleCameraControl(Camera2D &camera)
 
     if (IsKeyPressed(KEY_G))
         ++selectedBoid;
-    else if (IsKeyPressed(KEY_B))
+    if (IsKeyPressed(KEY_B))
         showDebugRadius = !showDebugRadius;
+    if (IsKeyPressed(KEY_H))
+        showWorldGrid = !showWorldGrid;
 }
 
 void HandleBoidsOnScreenEdge(Boid &boid)
@@ -143,30 +146,30 @@ void PopulateWorld(void)
         boidsArray[i].color = (Color){(unsigned char)(GetRandomValue(50, 255)), (unsigned char)(GetRandomValue(50, 255)), (unsigned char)(GetRandomValue(50, 255)), 255};
     }
 
-    for (int j = 0; j < MAX_SQUOIDS; ++j)
-    {
-        positionX = GetRandomValue(-WORLD_WIDTH, WORLD_WIDTH);
-        positionY = GetRandomValue(-WORLD_HEIGHT, WORLD_HEIGHT);
+    // for (int j = 0; j < MAX_SQUOIDS; ++j)
+    // {
+    //     positionX = GetRandomValue(-WORLD_WIDTH, WORLD_WIDTH);
+    //     positionY = GetRandomValue(-WORLD_HEIGHT, WORLD_HEIGHT);
 
-        velocityX = GetRandomValue(-(SQUOID_SPEED), SQUOID_SPEED);
-        velocityY = GetRandomValue(-(SQUOID_SPEED), SQUOID_SPEED);
+    //     velocityX = GetRandomValue(-(SQUOID_SPEED), SQUOID_SPEED);
+    //     velocityY = GetRandomValue(-(SQUOID_SPEED), SQUOID_SPEED);
 
-        while (velocityX == 0.f && velocityY == 0.f)
-        {
-            velocityX = GetRandomValue(-SQUOID_SPEED, SQUOID_SPEED);
-            velocityY = GetRandomValue(-SQUOID_SPEED, SQUOID_SPEED);
-        }
+    //     while (velocityX == 0.f && velocityY == 0.f)
+    //     {
+    //         velocityX = GetRandomValue(-SQUOID_SPEED, SQUOID_SPEED);
+    //         velocityY = GetRandomValue(-SQUOID_SPEED, SQUOID_SPEED);
+    //     }
 
-        squoidsArray[j].position = (Vector2){positionX, positionY};
-        squoidsArray[j].velocity = (Vector2){velocityX, velocityY};
-        squoidsArray[j].maxSpeed = SQUOID_SPEED;
-        squoidsArray[j].perceptionRadius = SQUOID_PERCEPTION_RADIUS;
-        squoidsArray[j].squoidSize = SQUOID_BASE_SIZE;
-        squoidsArray[j].separationStrength = SQUOID_SEPARATION_STRENGTH;
-        squoidsArray[j].rotation = 0;
-        squoidsArray[j].id = j + MAX_BOIDS;
-        squoidsArray[j].color = (Color){9, 130, 174, 255};
-    }
+    //     squoidsArray[j].position = (Vector2){positionX, positionY};
+    //     squoidsArray[j].velocity = (Vector2){velocityX, velocityY};
+    //     squoidsArray[j].maxSpeed = SQUOID_SPEED;
+    //     squoidsArray[j].perceptionRadius = SQUOID_PERCEPTION_RADIUS;
+    //     squoidsArray[j].size = SQUOID_BASE_SIZE;
+    //     squoidsArray[j].separationStrength = SQUOID_SEPARATION_STRENGTH;
+    //     squoidsArray[j].rotation = 0;
+    //     squoidsArray[j].id = j + MAX_BOIDS;
+    //     squoidsArray[j].color = (Color){9, 130, 174, 255};
+    // }
 }
 
 void UpdateGame(void)
@@ -180,27 +183,34 @@ void UpdateGame(void)
             continue;
         }
 
-        
-        int cellX = (int)std::floor(boidsArray[i].position.x / 480.0f);
-        int cellY = (int)std::floor(boidsArray[i].position.y / 480.0f);
+        int cellX = (int)std::floor(boidsArray[i].position.x / boidsArray[i].perceptionRadius);
+        int cellY = (int)std::floor(boidsArray[i].position.y / boidsArray[i].perceptionRadius);
 
         string cellHash = to_string(cellX) + "," + to_string(cellY);
-        
+
         worldGrid[cellHash].push_back(i);
-       
     }
 
-
-    for (Boid &boid : boidsArray){
-         
-        boid.MoveBoid(boidsArray, MAX_BOIDS, squoidsArray, MAX_SQUOIDS, worldGrid);
-        HandleBoidsOnScreenEdge(boid);
-    }
-    for (int i = 0; i < MAX_SQUOIDS; ++i)
+    for (int i = 0; i < MAX_BOIDS; i++)
     {
-        squoidsArray[i].MoveSquoid(squoidsArray, MAX_SQUOIDS);
-        HandleSquoidsOnScreenEdge(squoidsArray[i]);
+        if (!boidsArray[i].isAlive)
+        {
+            continue;
+        }
+        boidsArray[i].SteerBoid(boidsArray, MAX_BOIDS, squoidsArray, MAX_SQUOIDS, worldGrid);
     }
+
+    for (int i = 0; i < MAX_BOIDS; i++)
+    {
+        boidsArray[i].MoveBoid();
+        HandleBoidsOnScreenEdge(boidsArray[i]);
+    }
+
+    // for (int i = 0; i < MAX_SQUOIDS; ++i)
+    // {
+    //     squoidsArray[i].MoveSquoid(squoidsArray, MAX_SQUOIDS);
+    //     HandleSquoidsOnScreenEdge(squoidsArray[i]);
+    // }
 }
 
 void DrawGame(void)
@@ -211,20 +221,23 @@ void DrawGame(void)
 
     DrawText(TextFormat("FPS: %d", GetFPS()), -WORLD_WIDTH, -WORLD_HEIGHT - 500, 200, RAYWHITE);
 
-    for (const auto &cell : worldGrid) {
-        string cellName = cell.first;
-        vector<int> boidIDs = cell.second;
+    if (showWorldGrid)
+    {
+        for (const auto &cell : worldGrid)
+        {
+            string cellName = cell.first;
+            vector<int> boidIDs = cell.second;
 
-        size_t commaPosition = cellName.find(',');
-        int gridX = std::stoi(cellName.substr(0, commaPosition));
-        int gridY = std::stoi(cellName.substr(commaPosition + 1));
-        Vector2 cellPosition = (Vector2) {gridX * BOID_PERCEPTION_RADIUS, gridY * BOID_PERCEPTION_RADIUS};
+            size_t commaPosition = cellName.find(',');
+            int gridX = std::stoi(cellName.substr(0, commaPosition));
+            int gridY = std::stoi(cellName.substr(commaPosition + 1));
+            Vector2 cellPosition = (Vector2){gridX * BOID_PERCEPTION_RADIUS, gridY * BOID_PERCEPTION_RADIUS};
 
+            std::cout << gridX << ' ' << gridY << endl;
 
-        std::cout << gridX << ' ' << gridY << endl;
-
-        DrawText(TextFormat("Cell "), cellPosition.x + 30, cellPosition.y + 30, 50, RAYWHITE );
-        DrawRectangleLines(cellPosition.x, cellPosition.y, BOID_PERCEPTION_RADIUS,BOID_PERCEPTION_RADIUS,RAYWHITE);
+            DrawText(TextFormat("Cell "), cellPosition.x + 30, cellPosition.y + 30, 50, RAYWHITE);
+            DrawRectangleLines(cellPosition.x, cellPosition.y, BOID_PERCEPTION_RADIUS, BOID_PERCEPTION_RADIUS, RAYWHITE);
+        }
     }
 
     for (int i = 0; i < MAX_BOIDS; ++i)

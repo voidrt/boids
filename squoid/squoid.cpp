@@ -13,7 +13,7 @@ void Squoid::MoveSquoid(
 
     for (int k = 0; k < squoidCount; ++k)
     {
-        float distanceToSquoid = Vector2Distance(this->position, squoids[k].position) - this->squoidSize - squoids[k].squoidSize;
+        float distanceToSquoid = Vector2Distance(this->position, squoids[k].position) - this->size - squoids[k].size;
 
         if (distanceToSquoid < this->perceptionRadius)
         {

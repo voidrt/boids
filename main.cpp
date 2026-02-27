@@ -10,21 +10,15 @@ using namespace std;
 #include "boid/boid.h"
 #include "squoid/squoid.h"
 
-#define MAX_BOIDS 2000
+#define MAX_BOIDS 1000
 #define BOID_SPEED 18.0f
 #define BOID_BASE_SIZE 20.0f
 #define BOID_SEPARATION_RADIUS 40.0f
 #define BOID_PERCEPTION_RADIUS 340.0f
 #define BOID_TO_SQUOID_SEPARATION_STRENGTH 60.0f
-#define BOID_SEPARATION_STRENGTH 3.0f
-#define BOID_ALIGNMENT_STRENGTH 70.5f
-#define BOID_COHESION_STRENGTH 1.5f
-
-#define MAX_SQUOIDS 8
-#define SQUOID_SPEED 3.0f
-#define SQUOID_BASE_SIZE 80.0f
-#define SQUOID_PERCEPTION_RADIUS 640.0f
-#define SQUOID_SEPARATION_STRENGTH 35.0f
+#define BOID_SEPARATION_STRENGTH 35.0f
+#define BOID_ALIGNMENT_STRENGTH 15.5f
+#define BOID_COHESION_STRENGTH 17.5f
 
 #define SCREEN_WIDTH 1366
 #define SCREEN_HEIGHT 768
@@ -35,11 +29,11 @@ static unordered_map<string, vector<int>> worldGrid;
 static float cellSize = BOID_PERCEPTION_RADIUS;
 
 static Boid boidsArray[MAX_BOIDS] = {0};
-static Squoid squoidsArray[MAX_SQUOIDS] = {0};
 static Camera2D camera = Camera2D();
-static int selectedBoid = 0;
-static bool showDebugRadius = false;
-static bool showWorldGrid = false;
+static int selectedBoid;
+static bool showDebugRadius;
+static bool showWorldGrid;
+static bool isPausedSimulation;
 
 void HandleCameraControl(Camera2D &camera)
 {
@@ -70,42 +64,21 @@ void HandleCameraControl(Camera2D &camera)
         showWorldGrid = !showWorldGrid;
 }
 
-void HandleBoidsOnScreenEdge(Boid &boid)
-{
-    if (boid.position.x >= WORLD_WIDTH)
-        boid.position.x = -WORLD_WIDTH;
-    else if (boid.position.x <= -WORLD_WIDTH)
-        boid.position.x = WORLD_WIDTH;
-
-    if (boid.position.y >= WORLD_HEIGHT)
-        boid.position.y = -WORLD_HEIGHT;
-
-    else if (boid.position.y <= -WORLD_HEIGHT)
-        boid.position.y = WORLD_HEIGHT;
-}
-
-void HandleSquoidsOnScreenEdge(Squoid &squoid)
-{
-    if (squoid.position.x >= WORLD_WIDTH)
-        squoid.position.x = -WORLD_WIDTH;
-    else if (squoid.position.x <= -WORLD_WIDTH)
-        squoid.position.x = WORLD_WIDTH;
-
-    if (squoid.position.y >= WORLD_HEIGHT)
-        squoid.position.y = -WORLD_HEIGHT;
-
-    else if (squoid.position.y <= -WORLD_HEIGHT)
-        squoid.position.y = WORLD_HEIGHT;
-}
-
 void InitWorld(void)
 {
     camera.offset = (Vector2){(SCREEN_WIDTH / 2.0f) + BOID_BASE_SIZE, (SCREEN_HEIGHT / 2.0f) + BOID_BASE_SIZE};
     camera.target = (Vector2){0, 0};
     camera.zoom = 1.f;
 
+    selectedBoid = 0;
+    showDebugRadius = false;
+    showWorldGrid = true;
+    isPausedSimulation = true;
+
     InitWindow(static_cast<int>(SCREEN_WIDTH), static_cast<int>(SCREEN_HEIGHT), "Boids swimming");
     SetTargetFPS(60);
+
+    worldGrid = {};
 }
 
 void PopulateWorld(void)
@@ -126,6 +99,9 @@ void PopulateWorld(void)
         velocityX = GetRandomValue(-(BOID_SPEED), BOID_SPEED);
         velocityY = GetRandomValue(-(BOID_SPEED), BOID_SPEED);
 
+        int cellIndexX = (int)floor(boidsArray[i].position.x / boidsArray[i].perceptionRadius);
+        int cellIndexY = (int)floor(boidsArray[i].position.y / boidsArray[i].perceptionRadius);
+
         while (velocityX == 0 && velocityY == 0)
         {
             velocityX = GetRandomValue(-(BOID_SPEED), BOID_SPEED);
@@ -145,31 +121,6 @@ void PopulateWorld(void)
         boidsArray[i].id = i;
         boidsArray[i].color = (Color){(unsigned char)(GetRandomValue(50, 255)), (unsigned char)(GetRandomValue(50, 255)), (unsigned char)(GetRandomValue(50, 255)), 255};
     }
-
-    // for (int j = 0; j < MAX_SQUOIDS; ++j)
-    // {
-    //     positionX = GetRandomValue(-WORLD_WIDTH, WORLD_WIDTH);
-    //     positionY = GetRandomValue(-WORLD_HEIGHT, WORLD_HEIGHT);
-
-    //     velocityX = GetRandomValue(-(SQUOID_SPEED), SQUOID_SPEED);
-    //     velocityY = GetRandomValue(-(SQUOID_SPEED), SQUOID_SPEED);
-
-    //     while (velocityX == 0.f && velocityY == 0.f)
-    //     {
-    //         velocityX = GetRandomValue(-SQUOID_SPEED, SQUOID_SPEED);
-    //         velocityY = GetRandomValue(-SQUOID_SPEED, SQUOID_SPEED);
-    //     }
-
-    //     squoidsArray[j].position = (Vector2){positionX, positionY};
-    //     squoidsArray[j].velocity = (Vector2){velocityX, velocityY};
-    //     squoidsArray[j].maxSpeed = SQUOID_SPEED;
-    //     squoidsArray[j].perceptionRadius = SQUOID_PERCEPTION_RADIUS;
-    //     squoidsArray[j].size = SQUOID_BASE_SIZE;
-    //     squoidsArray[j].separationStrength = SQUOID_SEPARATION_STRENGTH;
-    //     squoidsArray[j].rotation = 0;
-    //     squoidsArray[j].id = j + MAX_BOIDS;
-    //     squoidsArray[j].color = (Color){9, 130, 174, 255};
-    // }
 }
 
 void UpdateGame(void)
@@ -183,10 +134,10 @@ void UpdateGame(void)
             continue;
         }
 
-        int cellX = (int)std::floor(boidsArray[i].position.x / boidsArray[i].perceptionRadius);
-        int cellY = (int)std::floor(boidsArray[i].position.y / boidsArray[i].perceptionRadius);
+        int cellIndexX = (int)floor(boidsArray[i].position.x / boidsArray[i].perceptionRadius);
+        int cellIndexY = (int)floor(boidsArray[i].position.y / boidsArray[i].perceptionRadius);
 
-        string cellHash = to_string(cellX) + "," + to_string(cellY);
+        string cellHash = to_string(cellIndexX) + "," + to_string(cellIndexY);
 
         worldGrid[cellHash].push_back(i);
     }
@@ -197,20 +148,12 @@ void UpdateGame(void)
         {
             continue;
         }
-        boidsArray[i].SteerBoid(boidsArray, MAX_BOIDS, squoidsArray, MAX_SQUOIDS, worldGrid);
+        boidsArray[i].SteerBoid(boidsArray, MAX_BOIDS, worldGrid);
     }
-
     for (int i = 0; i < MAX_BOIDS; i++)
     {
-        boidsArray[i].MoveBoid();
-        HandleBoidsOnScreenEdge(boidsArray[i]);
+        boidsArray[i].MoveBoid(WORLD_WIDTH, WORLD_HEIGHT);
     }
-
-    // for (int i = 0; i < MAX_SQUOIDS; ++i)
-    // {
-    //     squoidsArray[i].MoveSquoid(squoidsArray, MAX_SQUOIDS);
-    //     HandleSquoidsOnScreenEdge(squoidsArray[i]);
-    // }
 }
 
 void DrawGame(void)
@@ -226,7 +169,7 @@ void DrawGame(void)
         for (const auto &cell : worldGrid)
         {
             string cellName = cell.first;
-            vector<int> boidIDs = cell.second;
+            const vector<int> &boidIDs = cell.second;
 
             size_t commaPosition = cellName.find(',');
             int gridX = std::stoi(cellName.substr(0, commaPosition));
@@ -235,8 +178,9 @@ void DrawGame(void)
 
             std::cout << gridX << ' ' << gridY << endl;
 
-            DrawText(TextFormat("Cell "), cellPosition.x + 30, cellPosition.y + 30, 50, RAYWHITE);
-            DrawRectangleLines(cellPosition.x, cellPosition.y, BOID_PERCEPTION_RADIUS, BOID_PERCEPTION_RADIUS, RAYWHITE);
+            Rectangle cellRect = (Rectangle){cellPosition.x, cellPosition.y, cellSize, cellSize};
+
+            DrawRectangleLinesEx(cellRect, 12, RAYWHITE);
         }
     }
 
@@ -252,29 +196,19 @@ void DrawGame(void)
 
         if (boidsArray[i].id == selectedBoid && showDebugRadius)
         {
-            // squoid perception radius
             DrawCircleV(boidsArray[i].position, boidsArray[i].perceptionRadius * 2, {30, 241, 35, 200});
-            // flock perception radius
+
             DrawCircleV(boidsArray[i].position, boidsArray[i].perceptionRadius, {200, 151, 55, 200});
-            // repel radius
+
             DrawCircleV(boidsArray[i].position, boidsArray[i].repelRadius, {231, 41, 55, 200});
 
             DrawTriangle(v1, v2, v3, boidsArray[i].color);
         }
-        DrawTriangle(v1, v2, v3, boidsArray[i].color);
+        else
+        {
+            DrawTriangle(v1, v2, v3, boidsArray[i].color);
+        }
     }
-
-    // for (int i = 0; i < MAX_SQUOIDS; ++i)
-    // {
-
-    //     Rectangle squoidBody = {
-    //         squoidsArray[i].position.x,
-    //         squoidsArray[i].position.y,
-    //         squoidsArray[i].squoidSize * 2.f,
-    //         squoidsArray[i].squoidSize / 1.5f,
-    //     };
-    //     DrawRectanglePro(squoidBody, (Vector2){squoidBody.width / 2, squoidBody.height / 2}, squoidsArray[i].rotation, squoidsArray[i].color);
-    // }
 
     EndMode2D();
     EndDrawing();

@@ -1,10 +1,6 @@
-using namespace std;
 #include <raylib.h>
-#include "../squoid/squoid.h"
-#include <unordered_map>
-#include <string>
-#include <cmath>
-#include <vector>
+#include <array>
+#include "../config.h"
 
 #ifndef BOID_H
 #define BOID_H
@@ -15,21 +11,20 @@ struct Boid
 
     Vector2 position;
     Vector2 velocity;
-    float rotation;
-    float maxSpeed;
-    float squoidSeparationStrength;
-    float separationStrength;
-    float alignmentStrength;
-    float cohesionStrength;
-    float repelRadius;
-    float perceptionRadius;
     float size;
     int id;
+    float perceptionRadius;
+    float rotation;
     Color color;
+    float maxSpeed = BOID_SPEED;
+    float squoidSeparationStrength = BOID_TO_SQUOID_SEPARATION_STRENGTH;
+    float separationStrength = BOID_SEPARATION_STRENGTH;
+    float alignmentStrength = BOID_ALIGNMENT_STRENGTH;
+    float cohesionStrength = BOID_COHESION_STRENGTH;
+    float repelRadius = BOID_SEPARATION_RADIUS;
 
-    void SteerBoid(const Boid flock[], const int boidCount, const unordered_map<string, vector<int>> &worldGrid);
-
-    void MoveBoid(const int &WorldWidth, const int &WorldHeight);
+    void UpdateVelocity(const std::array<Boid, MAX_BOIDS> &flock);
+    void UpdatePosition();
 };
 
 #endif

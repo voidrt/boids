@@ -114,8 +114,6 @@ void UpdateGame(void)
         int worldGridIndex = (gridYPosition * gridColumns) + gridXPosition;
 
         worldGrid[worldGridIndex].push_back(boid.identifier);
-
-        std::cout << gridXPosition << ' ' << gridYPosition << ' ' << worldGrid[worldGridIndex].size() << '\n';
     }
 
     for (Boid &boid : boidsArray)
@@ -151,7 +149,19 @@ void DrawGame(void)
 
             Rectangle cellRect = (Rectangle){cellX, cellY, BOID_PERCEPTION_RADIUS, BOID_PERCEPTION_RADIUS};
 
-            DrawRectangleLinesEx(cellRect, 6, {230, 230, 230, 100});
+            int debugBoidCellX = std::floor((boidsArray[selectedBoid].position.x) / BOID_PERCEPTION_RADIUS);
+            int debugBoidCellY = std::floor((boidsArray[selectedBoid].position.y) / BOID_PERCEPTION_RADIUS);
+
+            int debugBoidArrayIndex = (debugBoidCellY * gridColumns) + debugBoidCellX;
+
+            if (debugBoidArrayIndex == i)
+            {
+                DrawRectangle(cellRect.x,cellRect.y, cellRect.width, cellRect.height, RED);
+            }
+            else
+            {
+                DrawRectangleLinesEx(cellRect, 6, {230, 230, 230, 100});
+            }
         }
     }
     for (Boid &boid : boidsArray)
@@ -161,10 +171,11 @@ void DrawGame(void)
             continue;
 
         Vector2 v1, v2, v3;
+        float boidSize = (float)boid.size;
 
-        v1 = Vector2Add(Vector2Rotate((Vector2){boid.size, 0.0f}, atan2f(boid.velocity.y, boid.velocity.x)), boid.position);
-        v2 = Vector2Add(Vector2Rotate((Vector2){-(boid.size) / 1.5f, -boid.size / 1.5f}, atan2f(boid.velocity.y, boid.velocity.x)), boid.position);
-        v3 = Vector2Add(Vector2Rotate((Vector2){-(boid.size) / 1.5f, boid.size / 1.5f}, atan2f(boid.velocity.y, boid.velocity.x)), boid.position);
+        v1 = Vector2Add(Vector2Rotate((Vector2){boidSize, 0.0f}, atan2f(boid.velocity.y, boid.velocity.x)), boid.position);
+        v2 = Vector2Add(Vector2Rotate((Vector2){-(boidSize) / 2.f, -boidSize / 2.f}, atan2f(boid.velocity.y, boid.velocity.x)), boid.position);
+        v3 = Vector2Add(Vector2Rotate((Vector2){-(boidSize) / 2.f, boidSize / 2.f}, atan2f(boid.velocity.y, boid.velocity.x)), boid.position);
 
         if (boid.identifier == selectedBoid && showDebugRadius)
         {

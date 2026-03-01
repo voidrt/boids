@@ -14,5 +14,6 @@
 #define SCREEN_HEIGHT 768
 #define WORLD_WIDTH 12801
 #define WORLD_HEIGHT 6401
+#define TOTAL_CELLS 861
 
 #endif

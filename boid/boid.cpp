@@ -19,7 +19,7 @@ void Boid::UpdatePosition()
     this->position = Vector2Add(this->position, this->velocity);
 }
 
-void Boid::UpdateVelocity(const std::array<Boid, MAX_BOIDS> &flock)
+void Boid::UpdateVelocity(const std::array<Boid, MAX_BOIDS> &flock, const std::array<std::vector<int>, TOTAL_CELLS> &worldGrid, int gridColumns, int gridRows)
 {
     if (!this->isAlive)
     {
@@ -30,10 +30,56 @@ void Boid::UpdateVelocity(const std::array<Boid, MAX_BOIDS> &flock)
     Vector2 separationVelocity = (Vector2){0.0f, 0.0f};
     Vector2 alignmentVelocity = (Vector2){0.0f, 0.0f};
     Vector2 cohesionVelocity = (Vector2){0.0f, 0.0f};
-
     Vector2 totalBoidVelocity = {0};
 
-    // for loop
+    int positionInGridY = std::floor(this->position.y / BOID_PERCEPTION_RADIUS);
+    int positionInGridX = std::floor(this->position.x / BOID_PERCEPTION_RADIUS);
+    int worldGridIndex = (positionInGridY * gridColumns) + positionInGridX;
+
+    for (int delta_x = -1; delta_x <= 1; delta_x++)
+    {
+        for (int delta_y = -1; delta_y <= 1; delta_y++)
+        {
+            int neighborCellsX = positionInGridX + delta_x;
+            int neighborCellsY = positionInGridY + delta_y;
+
+            if (neighborCellsX < 0 || neighborCellsX >= gridColumns || neighborCellsY < 0 || neighborCellsY >= gridRows)
+                continue;
+
+            int neighborCellIndex = (neighborCellsY * gridColumns) + neighborCellsX;
+            float distanceToNeighbor = 0.0f;
+            Vector2 cohesionDirection = {0.0f, 0.0f};
+
+            for (int neighborIdentifier : worldGrid[worldGridIndex])
+            {
+                if (this->identifier == neighborIdentifier || !flock[neighborIdentifier].isAlive)
+                    continue;
+
+                distanceToNeighbor = Vector2Distance(this->position, flock[neighborIdentifier].position);
+
+                if (distanceToNeighbor < BOID_PERCEPTION_RADIUS && distanceToNeighbor > (this->size / 2))
+                {
+                    boidsInRange++;
+
+                    cohesionDirection += Vector2Subtract(flock[neighborIdentifier].position, this->position);
+                    alignmentVelocity += (flock[neighborIdentifier].velocity);
+
+                    if (distanceToNeighbor < BOID_SEPARATION_RADIUS && distanceToNeighbor > (this->size / 2))
+                    {
+                        Vector2 wSeparationDirection = Vector2Scale(cohesionDirection, -1);
+                        wSeparationDirection /= distanceToNeighbor;
+                    }
+                    else if (distanceToNeighbor <= (this->size / 2))
+                    {
+                        float jitter = BOID_SPEED / 2;
+                        Vector2 randomMovement = (Vector2){(float)GetRandomValue(-jitter, jitter), (float)GetRandomValue(-jitter, jitter)};
+
+                        this->velocity += Vector2Add(randomMovement, Vector2Scale(flock[neighborIdentifier].velocity, 1 / 5));
+                    }
+                }
+            }
+        }
+    }
 
     if (boidsInRange >= 1)
     {

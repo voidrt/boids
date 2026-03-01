@@ -1,5 +1,6 @@
 #include <raylib.h>
 #include <array>
+#include <vector>
 #include "../config.h"
 
 #ifndef BOID_H
@@ -15,7 +16,7 @@ struct Boid
     int identifier;
     Color color;
 
-    void UpdateVelocity(const std::array<Boid, MAX_BOIDS> &flock);
+    void UpdateVelocity(const std::array<Boid, MAX_BOIDS> &flock, const std::array<std::vector<int>, TOTAL_CELLS> &worldGrid, int gridColumns, int gridRows);
     void UpdatePosition();
 };
 

@@ -14,7 +14,7 @@ constexpr int gridColumns = (WORLD_WIDTH / BOID_PERCEPTION_RADIUS) + 1;
 constexpr int gridRows = (WORLD_HEIGHT / BOID_PERCEPTION_RADIUS) + 1;
 constexpr int totalCells = gridColumns * gridRows;
 
-std::array<std::vector<int>, totalCells> worldGrid = {};
+std::array<std::vector<int>, TOTAL_CELLS> worldGrid = {};
 
 void HandleCameraControl(Camera2D &camera)
 {
@@ -94,7 +94,7 @@ void PopulateWorld(void)
 
 void UpdateGame(void)
 {
-    for (int i = 0; i < totalCells; i++)
+    for (int i = 0; i < TOTAL_CELLS; i++)
         worldGrid[i].clear();
 
     for (Boid &boid : boidsArray)
@@ -120,7 +120,7 @@ void UpdateGame(void)
     {
         if (!boid.isAlive)
             continue;
-        boid.UpdateVelocity(boidsArray);
+        boid.UpdateVelocity(boidsArray, worldGrid, gridColumns, gridRows);
     }
 
     for (Boid &boid : boidsArray)
@@ -142,7 +142,7 @@ void DrawGame(void)
 
     if (showDebugGrid)
     {
-        for (int i = 0; i < totalCells; i++)
+        for (int i = 0; i < TOTAL_CELLS; i++)
         {
             float cellX = (float)((i % gridColumns) * BOID_PERCEPTION_RADIUS);
             float cellY = (float)((i / gridColumns) * BOID_PERCEPTION_RADIUS);

@@ -1,99 +1,68 @@
 #include "boid.h"
-#include <raylib.h>
 #include <raymath.h>
 
 void Boid::UpdatePosition()
 {
 
-    if (this->position.x > WORLD_WIDTH)
-        this->position.x = 2;
-    else if (this->position.x <= 1)
-        this->position.x = WORLD_WIDTH;
+    while (this->position.x < 0.0f)
+    {
+        this->position.x += WORLD_WIDTH;
+    }
+    while (this->position.x >= WORLD_WIDTH)
+    {
+        this->position.x -= WORLD_WIDTH;
+    }
 
-    if (this->position.y > WORLD_HEIGHT)
-        this->position.y = 2;
-
-    else if (this->position.y <= 1)
-        this->position.y = WORLD_HEIGHT;
-
+    while (this->position.y < 0.0f)
+    {
+        this->position.y += WORLD_HEIGHT;
+    }
+    while (this->position.y >= WORLD_HEIGHT)
+    {
+        this->position.y -= WORLD_HEIGHT;
+    }
     this->position = Vector2Add(this->position, this->velocity);
 }
 
-void Boid::UpdateVelocity(const std::array<Boid, MAX_BOIDS> &flock, const std::array<std::vector<int>, TOTAL_CELLS> &worldGrid, int gridColumns, int gridRows)
+void Boid::UpdateVelocity(const std::array<Boid, MAX_BOIDS> &flock, const SpatialGrid &worldGrid)
 {
-    if (!this->isAlive)
-    {
-        return;
-    }
+    float boidsInRange{};
+    float distanceToFlock{};
+    Vector2 separationAcceleration = (Vector2){0.0f, 0.0f};
+    Vector2 alignmentAcceleration = (Vector2){0.0f, 0.0f};
+    Vector2 cohesionAcceleration = (Vector2){0.0f, 0.0f};
+    Vector2 squoidSeparationAcceleration = (Vector2){0.0f, 0.0f};
+    Vector2 totalBoidAcceleration = {0.0f, 0.0f};
 
-    int boidsInRange = 0;
-    Vector2 separationVelocity = (Vector2){0.0f, 0.0f};
-    Vector2 alignmentVelocity = (Vector2){0.0f, 0.0f};
-    Vector2 cohesionVelocity = (Vector2){0.0f, 0.0f};
-    Vector2 totalBoidVelocity = {0};
+    // int currentCell = (this->position.x / CELL_SIZE);
+    // int currentRow = (this->position.y / CELL_SIZE);
+    // currentCell = std::clamp(currentCell, 0, COLUMNS - 1);
+    // currentRow = std::clamp(currentRow, 0, ROWS - 1);
 
-    int positionInGridY = std::floor(this->position.y / BOID_PERCEPTION_RADIUS);
-    int positionInGridX = std::floor(this->position.x / BOID_PERCEPTION_RADIUS);
-    int worldGridIndex = (positionInGridY * gridColumns) + positionInGridX;
+    // for (int deltaY = -1; deltaY <= 1; deltaY++)
+    // {
+    //     for (int deltaX = -1; deltaX <= 1; deltaX++)
+    //     {
+    //         float deltaCellX = (currentCell + deltaX) * BOID_PERCEPTION_RADIUS;
+    //         float deltaCellY = (currentRow + deltaY) * BOID_PERCEPTION_RADIUS;
 
-    for (int delta_x = -1; delta_x <= 1; delta_x++)
-    {
-        for (int delta_y = -1; delta_y <= 1; delta_y++)
-        {
-            int neighborCellsX = positionInGridX + delta_x;
-            int neighborCellsY = positionInGridY + delta_y;
+    //         Rectangle cellRect = {deltaCellX, deltaCellY, BOID_PERCEPTION_RADIUS, BOID_PERCEPTION_RADIUS};
 
-            if (neighborCellsX < 0 || neighborCellsX >= gridColumns || neighborCellsY < 0 || neighborCellsY >= gridRows)
-                continue;
-
-            int neighborCellIndex = (neighborCellsY * gridColumns) + neighborCellsX;
-            float distanceToNeighbor = 0.0f;
-            Vector2 cohesionDirection = {0.0f, 0.0f};
-
-            for (int neighborIdentifier : worldGrid[worldGridIndex])
-            {
-                if (this->identifier == neighborIdentifier || !flock[neighborIdentifier].isAlive)
-                    continue;
-
-                distanceToNeighbor = Vector2Distance(this->position, flock[neighborIdentifier].position);
-
-                if (distanceToNeighbor < BOID_PERCEPTION_RADIUS && distanceToNeighbor > (this->size / 2))
-                {
-                    boidsInRange++;
-
-                    cohesionDirection += Vector2Subtract(flock[neighborIdentifier].position, this->position);
-                    alignmentVelocity += (flock[neighborIdentifier].velocity);
-
-                    if (distanceToNeighbor < BOID_SEPARATION_RADIUS && distanceToNeighbor > (this->size / 2))
-                    {
-                        Vector2 wSeparationDirection = Vector2Scale(cohesionDirection, -1);
-                        wSeparationDirection /= distanceToNeighbor;
-                    }
-                    else if (distanceToNeighbor <= (this->size / 2))
-                    {
-                        float jitter = BOID_SPEED / 2;
-                        Vector2 randomMovement = (Vector2){(float)GetRandomValue(-jitter, jitter), (float)GetRandomValue(-jitter, jitter)};
-
-                        this->velocity += Vector2Add(randomMovement, Vector2Scale(flock[neighborIdentifier].velocity, 1 / 5));
-                    }
-                }
-            }
-        }
-    }
+    //         DrawRectangleLinesEx(cellRect, 10, RED);
+    //     }
+    // }
 
     if (boidsInRange >= 1)
     {
-        alignmentVelocity = Vector2Scale(alignmentVelocity, 1 / boidsInRange);
-        cohesionVelocity = Vector2Scale(cohesionVelocity, 1 / boidsInRange);
+        alignmentAcceleration = Vector2Scale(alignmentAcceleration, 1 / boidsInRange);
+        cohesionAcceleration = Vector2Scale(cohesionAcceleration, 1 / boidsInRange);
     }
 
-    cohesionVelocity = Vector2Scale(cohesionVelocity, BOID_COHESION_STRENGTH);
-    alignmentVelocity = Vector2Scale(alignmentVelocity, BOID_ALIGNMENT_STRENGTH);
-    separationVelocity = Vector2Scale(separationVelocity, BOID_SEPARATION_RADIUS);
+    cohesionAcceleration = Vector2Scale(cohesionAcceleration, BOID_COHESION_STRENGTH);
+    alignmentAcceleration = Vector2Scale(alignmentAcceleration, BOID_ALIGNMENT_STRENGTH);
+    separationAcceleration = Vector2Scale(separationAcceleration, BOID_SEPARATION_STRENGTH);
 
-    totalBoidVelocity.x += cohesionVelocity.x + alignmentVelocity.x + separationVelocity.x;
+    totalBoidAcceleration = cohesionAcceleration + alignmentAcceleration + separationAcceleration + squoidSeparationAcceleration;
 
-    totalBoidVelocity.y += cohesionVelocity.y + alignmentVelocity.y + separationVelocity.y;
-
-    this->velocity = Vector2ClampValue(Vector2Add(this->velocity, totalBoidVelocity), 0, BOID_SPEED);
+    this->velocity = Vector2ClampValue((this->velocity + totalBoidAcceleration), 0, BOID_SPEED);
 }

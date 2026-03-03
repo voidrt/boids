@@ -5,6 +5,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(raylib REQUIRED)
-add_executable(Boids main.cpp boid/boid.cpp boid/boid.h  config.h)
+add_executable(Boids main.cpp boid/boid.cpp boid/boid.h  config.h constants.h)
 
 target_link_libraries(Boids PRIVATE raylib)

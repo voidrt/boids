@@ -1,4 +1,4 @@
-Boids simulation with working spatial partition.
+2D Boids simulation with spatial partition.
 
 boids boids boids boids boids boids 
 boids boids boids boids boids boids 

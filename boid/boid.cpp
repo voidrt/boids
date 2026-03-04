@@ -1,5 +1,6 @@
 #include "boid.h"
 #include <raymath.h>
+#include <algorithm>
 
 void Boid::UpdatePosition()
 {
@@ -21,48 +22,83 @@ void Boid::UpdatePosition()
     {
         this->position.y -= WORLD_HEIGHT;
     }
-    this->position = Vector2Add(this->position, this->velocity);
+    this->position += this->velocity;
 }
 
 void Boid::UpdateVelocity(const std::array<Boid, MAX_BOIDS> &flock, const SpatialGrid &worldGrid)
 {
     float boidsInRange{};
+    int boidsInSeparationRange{};
     float distanceToFlock{};
     Vector2 separationAcceleration = (Vector2){0.0f, 0.0f};
     Vector2 alignmentAcceleration = (Vector2){0.0f, 0.0f};
-    Vector2 cohesionAcceleration = (Vector2){0.0f, 0.0f};
-    Vector2 squoidSeparationAcceleration = (Vector2){0.0f, 0.0f};
     Vector2 totalBoidAcceleration = {0.0f, 0.0f};
 
-    // int currentCell = (this->position.x / CELL_SIZE);
-    // int currentRow = (this->position.y / CELL_SIZE);
-    // currentCell = std::clamp(currentCell, 0, COLUMNS - 1);
-    // currentRow = std::clamp(currentRow, 0, ROWS - 1);
+    Vector2 cohesionTargetDirection = (Vector2){0.0f, 0.0f};
+    Vector2 cohesionAcceleration = (Vector2){0.0f, 0.0f};
 
-    // for (int deltaY = -1; deltaY <= 1; deltaY++)
-    // {
-    //     for (int deltaX = -1; deltaX <= 1; deltaX++)
-    //     {
-    //         float deltaCellX = (currentCell + deltaX) * BOID_PERCEPTION_RADIUS;
-    //         float deltaCellY = (currentRow + deltaY) * BOID_PERCEPTION_RADIUS;
+    int currentCell = (this->position.x / CELL_SIZE);
+    int currentRow = (this->position.y / CELL_SIZE);
+    currentCell = std::clamp(currentCell, 0, COLUMNS - 1);
+    currentRow = std::clamp(currentRow, 0, ROWS - 1);
 
-    //         Rectangle cellRect = {deltaCellX, deltaCellY, BOID_PERCEPTION_RADIUS, BOID_PERCEPTION_RADIUS};
-
-    //         DrawRectangleLinesEx(cellRect, 10, RED);
-    //     }
-    // }
-
-    if (boidsInRange >= 1)
+    for (int deltaY = -1; deltaY <= 1; deltaY++)
     {
-        alignmentAcceleration = Vector2Scale(alignmentAcceleration, 1 / boidsInRange);
-        cohesionAcceleration = Vector2Scale(cohesionAcceleration, 1 / boidsInRange);
+        for (int deltaX = -1; deltaX <= 1; deltaX++)
+        {
+            int deltaCellX = (currentCell + deltaX + COLUMNS) % COLUMNS;
+            int deltaCellY = (currentRow + deltaY + ROWS) % ROWS;
+
+            for (int neighborId : worldGrid[deltaCellY][deltaCellX])
+            {
+                float distanceToFlock = Vector2Distance(this->position, flock[neighborId].position);
+
+                if (distanceToFlock < BOID_PERCEPTION_RADIUS && distanceToFlock > 0)
+                {
+                    boidsInRange++;
+
+                    alignmentAcceleration += flock[neighborId].velocity;
+
+                    cohesionTargetDirection += flock[neighborId].position;
+
+                    if (distanceToFlock < BOID_SEPARATION_RADIUS && distanceToFlock > 0)
+                    {
+                        boidsInSeparationRange++;
+
+                        Vector2 positionDifference = Vector2Normalize(Vector2Subtract(this->position, flock[neighborId].position));
+
+                        positionDifference *= (1 / distanceToFlock);
+
+                        separationAcceleration += positionDifference;
+                    }
+                }
+            }
+        }
     }
 
-    cohesionAcceleration = Vector2Scale(cohesionAcceleration, BOID_COHESION_STRENGTH);
-    alignmentAcceleration = Vector2Scale(alignmentAcceleration, BOID_ALIGNMENT_STRENGTH);
-    separationAcceleration = Vector2Scale(separationAcceleration, BOID_SEPARATION_STRENGTH);
+    if (boidsInRange > 0)
+    {
+        alignmentAcceleration /= boidsInRange;
+        alignmentAcceleration = Vector2Normalize(alignmentAcceleration) * BOID_SPEED;
+        alignmentAcceleration = Vector2Subtract(alignmentAcceleration, this->velocity) * GetFrameTime();
+        alignmentAcceleration *= BOID_ALIGNMENT_STRENGTH;
 
-    totalBoidAcceleration = cohesionAcceleration + alignmentAcceleration + separationAcceleration + squoidSeparationAcceleration;
+        cohesionTargetDirection /= boidsInRange;
+        cohesionAcceleration = Vector2Normalize(cohesionTargetDirection - this->position) * GetFrameTime();
 
-    this->velocity = Vector2ClampValue((this->velocity + totalBoidAcceleration), 0, BOID_SPEED);
+        cohesionAcceleration *= BOID_COHESION_STRENGTH;
+
+        totalBoidAcceleration += alignmentAcceleration + cohesionAcceleration;
+        if (boidsInSeparationRange > 0)
+        {
+            separationAcceleration = Vector2Normalize(separationAcceleration) * BOID_SPEED;
+            separationAcceleration = Vector2Subtract(separationAcceleration, this->velocity) * GetFrameTime();
+            separationAcceleration *= BOID_SEPARATION_STRENGTH;
+
+            totalBoidAcceleration += separationAcceleration;
+        }
+    }
+
+    this->velocity += totalBoidAcceleration;
+    this->velocity = Vector2ClampValue(this->velocity, 0, BOID_SPEED);
 }

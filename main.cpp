@@ -1,5 +1,4 @@
 #include "boid/boid.h"
-#include "constants.h"
 #include <raymath.h>
 #include <algorithm>
 #include <iostream>
@@ -58,14 +57,6 @@ void PopulateWorld(void)
     float velocityY;
     int size;
 
-    for (auto &row : worldGrid)
-    {
-        for (auto &cell : row)
-        {
-            cell.reserve(ESTIMATE_BOID_DISTRIBUTION);
-        }
-    }
-
     for (Boid &boid : boidsArray)
     {
         size = GetRandomValue(BOID_BASE_SIZE - 5, BOID_BASE_SIZE + 5);
@@ -80,7 +71,14 @@ void PopulateWorld(void)
         boid.velocity = (Vector2){velocityX, velocityY};
         boid.size = size;
         boid.identifier = &boid - &boidsArray[0];
-        boid.color = (Color){(unsigned char)(GetRandomValue(20, 255)), (unsigned char)(GetRandomValue(20, 255)), (unsigned char)(GetRandomValue(20, 255)), 255};
+        boid.color = (Color){(unsigned char)(GetRandomValue(20, 230)), (unsigned char)(GetRandomValue(20, 230)), (unsigned char)(GetRandomValue(20, 230)), 255};
+    }
+    for (auto &row : worldGrid)
+    {
+        for (auto &cell : row)
+        {
+            cell.reserve(ESTIMATE_BOID_DISTRIBUTION);
+        }
     }
 }
 

@@ -2,7 +2,7 @@
 #define BOID_H
 
 #include <raylib.h>
-#include "../constants.h"
+#include "../config.h"
 struct Boid
 {
     Vector2 position;

@@ -30,12 +30,12 @@ void Boid::UpdateVelocity(const std::array<Boid, MAX_BOIDS> &flock, const Spatia
     float boidsInRange{};
     int boidsInSeparationRange{};
     float distanceToFlock{};
-    Vector2 separationAcceleration = (Vector2){0.0f, 0.0f};
     Vector2 alignmentAcceleration = (Vector2){0.0f, 0.0f};
-    Vector2 totalBoidAcceleration = {0.0f, 0.0f};
-
+    Vector2 separationTargetDirection = (Vector2){0.0f, 0.0f};
+    Vector2 separationAcceleration = (Vector2){0.0f, 0.0f};
     Vector2 cohesionTargetDirection = (Vector2){0.0f, 0.0f};
     Vector2 cohesionAcceleration = (Vector2){0.0f, 0.0f};
+    Vector2 totalBoidAcceleration = {0.0f, 0.0f};
 
     int currentCell = (this->position.x / CELL_SIZE);
     int currentRow = (this->position.y / CELL_SIZE);
@@ -72,7 +72,7 @@ void Boid::UpdateVelocity(const std::array<Boid, MAX_BOIDS> &flock, const Spatia
 
                         positionDifference *= (1 / distanceToFlock);
 
-                        separationAcceleration += positionDifference;
+                        separationTargetDirection += positionDifference;
                     }
                 }
             }
@@ -85,18 +85,19 @@ void Boid::UpdateVelocity(const std::array<Boid, MAX_BOIDS> &flock, const Spatia
         alignmentAcceleration = Vector2Normalize(alignmentAcceleration) * BOID_SPEED;
         alignmentAcceleration = Vector2Subtract(alignmentAcceleration, this->velocity);
         alignmentAcceleration *= BOID_ALIGNMENT_STRENGTH;
+        totalBoidAcceleration += alignmentAcceleration;
 
         cohesionTargetDirection /= boidsInRange;
-        cohesionAcceleration = cohesionAcceleration * BOID_SPEED;
-        cohesionAcceleration = Vector2Subtract(cohesionAcceleration, this->velocity);
+        cohesionTargetDirection = Vector2Normalize(cohesionTargetDirection) * BOID_SPEED;
+        cohesionAcceleration = Vector2Subtract(cohesionTargetDirection, this->velocity);
         cohesionAcceleration *= BOID_COHESION_STRENGTH;
 
-        totalBoidAcceleration += alignmentAcceleration + cohesionAcceleration;
+        totalBoidAcceleration += cohesionAcceleration;
         if (boidsInSeparationRange > 0)
         {
-            separationAcceleration /= boidsInSeparationRange;
-            separationAcceleration = Vector2Normalize(separationAcceleration) * BOID_SPEED;
-            separationAcceleration = Vector2Subtract(separationAcceleration, this->velocity);
+            separationTargetDirection /= boidsInSeparationRange;
+            separationTargetDirection = Vector2Normalize(separationTargetDirection) * BOID_SPEED;
+            separationAcceleration = Vector2Subtract(separationTargetDirection, this->velocity);
             separationAcceleration *= BOID_SEPARATION_STRENGTH;
 
             totalBoidAcceleration += separationAcceleration;
@@ -104,5 +105,5 @@ void Boid::UpdateVelocity(const std::array<Boid, MAX_BOIDS> &flock, const Spatia
     }
 
     this->velocity += (totalBoidAcceleration * GetFrameTime());
-    this->velocity = Vector2ClampValue(this->velocity, BOID_SPEED / 3, BOID_SPEED);
+    this->velocity = Vector2ClampValue(this->velocity, BOID_SPEED / 1.5, BOID_SPEED);
 }

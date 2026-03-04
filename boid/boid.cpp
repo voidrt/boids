@@ -51,6 +51,9 @@ void Boid::UpdateVelocity(const std::array<Boid, MAX_BOIDS> &flock, const Spatia
 
             for (int neighborId : worldGrid[deltaCellY][deltaCellX])
             {
+                if (this->identifier == flock[neighborId].identifier)
+                    continue;
+
                 float distanceToFlock = Vector2Distance(this->position, flock[neighborId].position);
 
                 if (distanceToFlock < BOID_PERCEPTION_RADIUS && distanceToFlock > 0)
@@ -59,7 +62,7 @@ void Boid::UpdateVelocity(const std::array<Boid, MAX_BOIDS> &flock, const Spatia
 
                     alignmentAcceleration += flock[neighborId].velocity;
 
-                    cohesionTargetDirection += flock[neighborId].position;
+                    cohesionTargetDirection += Vector2Subtract(flock[neighborId].position, this->position);
 
                     if (distanceToFlock < BOID_SEPARATION_RADIUS && distanceToFlock > 0)
                     {
@@ -80,25 +83,26 @@ void Boid::UpdateVelocity(const std::array<Boid, MAX_BOIDS> &flock, const Spatia
     {
         alignmentAcceleration /= boidsInRange;
         alignmentAcceleration = Vector2Normalize(alignmentAcceleration) * BOID_SPEED;
-        alignmentAcceleration = Vector2Subtract(alignmentAcceleration, this->velocity) * GetFrameTime();
+        alignmentAcceleration = Vector2Subtract(alignmentAcceleration, this->velocity);
         alignmentAcceleration *= BOID_ALIGNMENT_STRENGTH;
 
         cohesionTargetDirection /= boidsInRange;
-        cohesionAcceleration = Vector2Normalize(cohesionTargetDirection - this->position) * GetFrameTime();
-
+        cohesionAcceleration = cohesionAcceleration * BOID_SPEED;
+        cohesionAcceleration = Vector2Subtract(cohesionAcceleration, this->velocity);
         cohesionAcceleration *= BOID_COHESION_STRENGTH;
 
         totalBoidAcceleration += alignmentAcceleration + cohesionAcceleration;
         if (boidsInSeparationRange > 0)
         {
+            separationAcceleration /= boidsInSeparationRange;
             separationAcceleration = Vector2Normalize(separationAcceleration) * BOID_SPEED;
-            separationAcceleration = Vector2Subtract(separationAcceleration, this->velocity) * GetFrameTime();
+            separationAcceleration = Vector2Subtract(separationAcceleration, this->velocity);
             separationAcceleration *= BOID_SEPARATION_STRENGTH;
 
             totalBoidAcceleration += separationAcceleration;
         }
     }
 
-    this->velocity += totalBoidAcceleration;
-    this->velocity = Vector2ClampValue(this->velocity, 0, BOID_SPEED);
+    this->velocity += (totalBoidAcceleration * GetFrameTime());
+    this->velocity = Vector2ClampValue(this->velocity, BOID_SPEED / 3, BOID_SPEED);
 }

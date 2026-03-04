@@ -7,7 +7,7 @@ static std::array<Boid, MAX_BOIDS> boidsArray = {0};
 static Camera2D camera = Camera2D();
 int debugSelectedBoid = 14;
 bool showDebugRadius = false;
-bool showDebugGrid = true;
+bool showDebugGrid = false;
 
 SpatialGrid worldGrid;
 
@@ -116,6 +116,7 @@ void UpdateGame(void)
 
 void DrawFrame(void)
 {
+
     BeginDrawing();
     BeginMode2D(camera);
 
@@ -125,6 +126,7 @@ void DrawFrame(void)
 
     if (showDebugGrid)
     {
+
         for (int y = 0; y < ROWS; y++)
         {
             for (int x = 0; x < COLUMNS; x++)
@@ -134,7 +136,7 @@ void DrawFrame(void)
 
                 Rectangle cellRect = {currentCellX, currentCellY, BOID_PERCEPTION_RADIUS, BOID_PERCEPTION_RADIUS};
 
-                DrawRectangleLinesEx(cellRect, 5, RAYWHITE);
+                DrawRectangleLinesEx(cellRect, 5, {255, 255, 255, 50});
             }
         }
     }
@@ -160,8 +162,9 @@ void DrawFrame(void)
                 deltaCellY *= CELL_SIZE;
 
                 Rectangle cellRect = {(float)deltaCellX, (float)deltaCellY, CELL_SIZE, CELL_SIZE};
+                std::cout << Vector2Length(boidsArray[debugSelectedBoid].velocity) << '\n';
 
-                DrawRectanglePro(cellRect, {0.0f, 0.0f}, 0, RED);
+                DrawRectangleLinesEx(cellRect, 10, RED);
             }
         }
     }
@@ -199,18 +202,18 @@ void UpdateDrawFrame(void)
 
 int main()
 {
+    std::ios_base::sync_with_stdio(false);
+    std::cin.tie(NULL);
+
     InitWorld();
     PopulateWorld();
 
     while (!WindowShouldClose())
     {
-        while (!WindowShouldClose())
-        {
-            HandleCameraControl(camera);
-            UpdateDrawFrame();
-        }
-
-        CloseWindow();
-        return 0;
+        HandleCameraControl(camera);
+        UpdateDrawFrame();
     }
+    CloseWindow();
+
+    return 0;
 }

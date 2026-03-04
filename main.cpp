@@ -154,6 +154,7 @@ void DrawFrame(void)
             {
                 int deltaCellX = (currentCell + deltaX);
                 int deltaCellY = (currentRow + deltaY);
+                Color gridColor = {255, 143, 10, 255}; // orange
 
                 deltaCellX = (deltaCellX + COLUMNS) % COLUMNS;
                 deltaCellY = (deltaCellY + ROWS) % ROWS;
@@ -164,7 +165,13 @@ void DrawFrame(void)
                 Rectangle cellRect = {(float)deltaCellX, (float)deltaCellY, CELL_SIZE, CELL_SIZE};
                 std::cout << Vector2Length(boidsArray[debugSelectedBoid].velocity) << '\n';
 
-                DrawRectangleLinesEx(cellRect, 10, RED);
+                if (deltaX == 0 && deltaY == 0)
+                {
+                    gridColor = {255, 5, 5, 255}; // red
+                    DrawRectangleLinesEx(cellRect, 20, gridColor);
+                }
+
+                DrawRectangleLinesEx(cellRect, 10, gridColor);
             }
         }
     }
@@ -182,8 +189,8 @@ void DrawFrame(void)
 
         if (boid.identifier == debugSelectedBoid && showDebugRadius)
         {
-            DrawCircleV(boid.position, BOID_PERCEPTION_RADIUS, {200, 151, 55, 200});
-            DrawCircleV(boid.position, BOID_SEPARATION_RADIUS, {231, 41, 55, 200});
+            DrawCircleV(boid.position, BOID_PERCEPTION_RADIUS, {255, 195, 2, 255});
+            DrawCircleV(boid.position, BOID_SEPARATION_RADIUS, {255, 5, 5, 255});
 
             DrawTriangle(v1, v2, v3, boid.color);
         }

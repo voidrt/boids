@@ -1,14 +1,16 @@
 #include "boid/boid.h"
+#include "whoid/whoid.h"
 #include <raymath.h>
 #include <algorithm>
 #include <iostream>
 
-static std::array<Boid, MAX_BOIDS> boidsArray = {0};
 static Camera2D camera = Camera2D();
 int debugSelectedBoid = 14;
 bool showDebugRadius = false;
 bool showDebugGrid = false;
 
+static std::array<Boid, MAX_BOIDS> boidsArray = {0};
+static std::array<Whoid, MAX_WHOIDS> whoidsArray = {0};
 SpatialGrid worldGrid;
 
 void HandleCameraControl(Camera2D &camera)
@@ -73,6 +75,23 @@ void PopulateWorld(void)
         boid.identifier = &boid - &boidsArray[0];
         boid.color = (Color){(unsigned char)(GetRandomValue(20, 230)), (unsigned char)(GetRandomValue(20, 230)), (unsigned char)(GetRandomValue(20, 230)), 255};
     }
+
+    for (Whoid &whoid : whoidsArray)
+    {
+
+        velocityX = GetRandomValue(-WHOID_SPEED, WHOID_SPEED);
+        velocityY = GetRandomValue(-WHOID_SPEED, WHOID_SPEED);
+
+        positionX = GetRandomValue(100, WORLD_WIDTH - 100);
+        positionY = GetRandomValue(100, WORLD_HEIGHT - 100);
+
+
+        whoid.identifier = (&whoid - &whoidsArray[0]) + MAX_BOIDS;
+        whoid.velocity = (Vector2){velocityX, velocityY};
+        whoid.position = (Vector2){positionX, positionY};
+        whoid.rotation = 0;
+    }
+
     for (auto &row : worldGrid)
     {
         for (auto &cell : row)
@@ -111,6 +130,14 @@ void UpdateGame(void)
     for (Boid &boid : boidsArray)
     {
         boid.UpdatePosition();
+    }
+
+    for (Whoid &whoid : whoidsArray) {
+        whoid.SteerWhoid(worldGrid, whoidsArray);
+    }
+
+    for (Whoid &whoid : whoidsArray) {
+        whoid.MoveWhoid();
     }
 }
 
@@ -195,6 +222,13 @@ void DrawFrame(void)
             DrawTriangle(v1, v2, v3, boid.color);
         }
         DrawTriangle(v1, v2, v3, boid.color);
+    }
+
+    for (Whoid &whoid : whoidsArray) {
+        Rectangle whoidBody = (Rectangle) {
+            whoid.position.x,whoid.position.y, WHOID_SIZE, WHOID_SIZE / 3
+        };
+        DrawRectanglePro(whoidBody, (Vector2){whoidBody.x/2, whoidBody.y /2}, whoid.rotation, (Color) {150,150,150,255});
     }
 
     EndMode2D();

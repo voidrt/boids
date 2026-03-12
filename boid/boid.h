@@ -7,8 +7,8 @@ struct Boid
 {
     Vector2 position;
     Vector2 velocity;
-    int size;
     int identifier;
+    int size;
     Color color;
 
     void UpdateVelocity(const std::array<Boid, MAX_BOIDS> &flock, const SpatialGrid &worldGrid);

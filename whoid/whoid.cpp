@@ -3,13 +3,13 @@
 
 void Whoid::DrawWhoid()
 {
-    Rectangle squoidBody = {
+    Rectangle whoidBody = {
         this->position.x,
         this->position.y,
         WHOID_SIZE,
         WHOID_SIZE / 3,
     };
-    DrawRectanglePro(squoidBody, (Vector2){squoidBody.width / 2, squoidBody.height / 2}, this->rotation, {100, 110, 147, 255});
+    DrawRectanglePro(whoidBody, (Vector2){whoidBody.width / 2, whoidBody.height / 2}, this->rotation, {100, 110, 147, 255});
 }
 
 void Whoid::MoveWhoid()

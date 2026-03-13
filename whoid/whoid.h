@@ -10,6 +10,7 @@ struct Whoid {
     int identifier;
     float rotation;
     
+    void DrawWhoid();
     void MoveWhoid();
     void SteerWhoid(const SpatialGrid &worldGrid, std::array<Whoid, MAX_WHOIDS> whoidGroup);
 };

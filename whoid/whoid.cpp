@@ -1,18 +1,19 @@
 #include "whoid.h"
 #include <raymath.h>
 
+void Whoid::DrawWhoid()
+{
+    Rectangle squoidBody = {
+        this->position.x,
+        this->position.y,
+        WHOID_SIZE,
+        WHOID_SIZE / 3,
+    };
+    DrawRectanglePro(squoidBody, (Vector2){squoidBody.width / 2, squoidBody.height / 2}, this->rotation, {100, 110, 147, 255});
+}
+
 void Whoid::MoveWhoid()
 {
-    while (this->position.x <= 0.0f || this->position.x >= WORLD_WIDTH)
-    {
-        this->velocity.x = -this->velocity.x;
-    }
-  
-    while (this->position.y <= 0.0f || this->position.y >= WORLD_HEIGHT)
-    {
-        this->velocity.y = -this->velocity.y;
-    }
-  
     this->position += this->velocity;
     this->rotation = atan2f(this->velocity.y, this->velocity.x) * RAD2DEG;
 }

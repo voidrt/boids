@@ -69,6 +69,7 @@ void PopulateWorld(void)
         velocityX = GetRandomValue(-(BOID_SPEED), BOID_SPEED);
         velocityY = GetRandomValue(-(BOID_SPEED), BOID_SPEED);
 
+        boid.isAlive = true;
         boid.position = (Vector2){positionX, positionY};
         boid.velocity = (Vector2){velocityX, velocityY};
         boid.size = size;
@@ -82,9 +83,14 @@ void PopulateWorld(void)
         velocityX = GetRandomValue(-WHOID_SPEED, WHOID_SPEED);
         velocityY = GetRandomValue(-WHOID_SPEED, WHOID_SPEED);
 
+        while (fabs(velocityX) < WHOID_SPEED || fabs(velocityY) < WHOID_SPEED)
+        {
+            velocityX = GetRandomValue(-WHOID_SPEED, WHOID_SPEED);
+            velocityY = GetRandomValue(-WHOID_SPEED, WHOID_SPEED);
+        }
+
         positionX = GetRandomValue(100, WORLD_WIDTH - 100);
         positionY = GetRandomValue(100, WORLD_HEIGHT - 100);
-
 
         whoid.identifier = (&whoid - &whoidsArray[0]) + MAX_BOIDS;
         whoid.velocity = (Vector2){velocityX, velocityY};
@@ -111,6 +117,28 @@ void UpdateGame(void)
         }
     }
 
+    for (Whoid &whoid : whoidsArray)
+    {
+        int currentCell = (whoid.position.x / CELL_SIZE);
+        int currentRow = (whoid.position.y / CELL_SIZE);
+
+        currentCell = std::clamp(currentCell, 0, COLUMNS - 1);
+        currentRow = std::clamp(currentRow, 0, ROWS - 1);
+
+        worldGrid[currentRow][currentCell].push_back(whoid.identifier);
+        // std::cout << whoid.identifier << std::endl;
+    }
+
+    for (Whoid &whoid : whoidsArray)
+    {
+        whoid.SteerWhoid(worldGrid, whoidsArray);
+    }
+
+    for (Whoid &whoid : whoidsArray)
+    {
+        whoid.MoveWhoid();
+    }
+
     for (Boid &boid : boidsArray)
     {
         int currentCell = (boid.position.x / CELL_SIZE);
@@ -124,20 +152,16 @@ void UpdateGame(void)
 
     for (Boid &boid : boidsArray)
     {
-        boid.UpdateVelocity(boidsArray, worldGrid);
+        if (!boid.isAlive)
+            continue;
+        boid.SteerBoid(boidsArray, whoidsArray, worldGrid);
     }
 
     for (Boid &boid : boidsArray)
     {
-        boid.UpdatePosition();
-    }
-
-    for (Whoid &whoid : whoidsArray) {
-        whoid.SteerWhoid(worldGrid, whoidsArray);
-    }
-
-    for (Whoid &whoid : whoidsArray) {
-        whoid.MoveWhoid();
+        if (!boid.isAlive)
+            continue;
+        boid.MoveBoid();
     }
 }
 
@@ -150,6 +174,7 @@ void DrawFrame(void)
     ClearBackground((Color){5, 5, 10, 255});
 
     DrawText(TextFormat("FPS: %d", GetFPS()), 1, 1 - 500, 200, RAYWHITE);
+    DrawText(TextFormat("Grid count: %d", COLUMNS * ROWS), SCREEN_WIDTH, 1 - 500, 200, RAYWHITE);
 
     if (showDebugGrid)
     {
@@ -175,29 +200,34 @@ void DrawFrame(void)
         int currentCell = (mainBoid.position.x / CELL_SIZE);
         int currentRow = (mainBoid.position.y / CELL_SIZE);
 
-        for (int deltaY = -1; deltaY <= 1; deltaY++)
+        for (int deltaY = -2; deltaY <= 2; deltaY++)
         {
-            for (int deltaX = -1; deltaX <= 1; deltaX++)
+            for (int deltaX = -2; deltaX <= 2; deltaX++)
             {
                 int deltaCellX = (currentCell + deltaX);
                 int deltaCellY = (currentRow + deltaY);
-                Color gridColor = {255, 143, 10, 255}; // orange
 
                 deltaCellX = (deltaCellX + COLUMNS) % COLUMNS;
                 deltaCellY = (deltaCellY + ROWS) % ROWS;
 
                 deltaCellX *= CELL_SIZE;
                 deltaCellY *= CELL_SIZE;
+                Color gridColor = {255, 255, 16, 255}; // orange
 
                 Rectangle cellRect = {(float)deltaCellX, (float)deltaCellY, CELL_SIZE, CELL_SIZE};
-                std::cout << Vector2Length(boidsArray[debugSelectedBoid].velocity) << '\n';
+
+                mainBoid.DrawBoid();
+                if (abs(deltaX) <= 1 && abs(deltaY) <= 1)
+                {
+                    gridColor = {255, 143, 10, 255};
+                    DrawRectangleLinesEx(cellRect, 20, gridColor);
+                }
 
                 if (deltaX == 0 && deltaY == 0)
                 {
                     gridColor = {255, 5, 5, 255}; // red
                     DrawRectangleLinesEx(cellRect, 20, gridColor);
                 }
-
                 DrawRectangleLinesEx(cellRect, 10, gridColor);
             }
         }
@@ -205,30 +235,21 @@ void DrawFrame(void)
 
     for (Boid &boid : boidsArray)
     {
+        if (!boid.isAlive)
+            continue;
 
-        Vector2 v1, v2, v3;
-
-        float size = boid.size;
-
-        v1 = Vector2Add(Vector2Rotate((Vector2){size, 0.0f}, atan2f(boid.velocity.y, boid.velocity.x)), boid.position);
-        v2 = Vector2Add(Vector2Rotate((Vector2){-(size) / 1.5f, -size / 1.5f}, atan2f(boid.velocity.y, boid.velocity.x)), boid.position);
-        v3 = Vector2Add(Vector2Rotate((Vector2){-(size) / 1.5f, size / 1.5f}, atan2f(boid.velocity.y, boid.velocity.x)), boid.position);
-
+        boid.DrawBoid();
         if (boid.identifier == debugSelectedBoid && showDebugRadius)
         {
+            DrawCircleV(boid.position, BOID_TO_WHOID_PERCEPTION_RADIUS, {100, 255, 100, 255});
             DrawCircleV(boid.position, BOID_PERCEPTION_RADIUS, {255, 195, 2, 255});
             DrawCircleV(boid.position, BOID_SEPARATION_RADIUS, {255, 5, 5, 255});
-
-            DrawTriangle(v1, v2, v3, boid.color);
         }
-        DrawTriangle(v1, v2, v3, boid.color);
     }
 
-    for (Whoid &whoid : whoidsArray) {
-        Rectangle whoidBody = (Rectangle) {
-            whoid.position.x,whoid.position.y, WHOID_SIZE, WHOID_SIZE / 3
-        };
-        DrawRectanglePro(whoidBody, (Vector2){whoidBody.x/2, whoidBody.y /2}, whoid.rotation, (Color) {150,150,150,255});
+    for (Whoid &whoid : whoidsArray)
+    {
+        whoid.DrawWhoid();
     }
 
     EndMode2D();

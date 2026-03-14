@@ -1,6 +1,7 @@
 #include "whoid.h"
 #include <raymath.h>
 #include <algorithm>
+#include <iostream>
 
 void Whoid::DrawWhoid()
 {
@@ -29,11 +30,6 @@ void Whoid::SteerWhoid(const SpatialGrid &worldGrid, std::array<Whoid, MAX_WHOID
 
     float whoidsInRange{};
 
-    int currentCell = (this->position.x / CELL_SIZE);
-    int currentRow = (this->position.y / CELL_SIZE);
-    currentCell = std::clamp(currentCell, 0, COLUMNS - 1);
-    currentRow = std::clamp(currentRow, 0, ROWS - 1);
-
     if (this->position.x < WHOID_SIZE * 2)
     {
         edgeAvoidanceTargetDirection.x += EDGE_AVOIDANCE_STRENGTH;
@@ -52,33 +48,25 @@ void Whoid::SteerWhoid(const SpatialGrid &worldGrid, std::array<Whoid, MAX_WHOID
         edgeAvoidanceTargetDirection.y -= EDGE_AVOIDANCE_STRENGTH;
     }
 
-    for (int deltaY = -3; deltaY <= 3; deltaY++)
+    int currentCell = (this->position.x / CELL_SIZE);
+    int currentRow = (this->position.y / CELL_SIZE);
+    currentCell = std::clamp(currentCell, 0, COLUMNS - 1);
+    currentRow = std::clamp(currentRow, 0, ROWS - 1);
+
+    for (Whoid &whoid : whoidGroup)
     {
-        for (int deltaX = -3; deltaX <= 3; deltaX++)
+        float distanceToWhoid = Vector2Distance(this->position, whoid.position);
+
+        if (distanceToWhoid < WHOID_PERCEPTION_RADIUS && distanceToWhoid > 1)
         {
-            int cellDeltaX = (currentCell + deltaX + COLUMNS) % COLUMNS;
-            int cellDeltaY = (currentCell + deltaY + ROWS) % ROWS;
+            whoidsInRange++;
+            Vector2 positionDifference = Vector2Normalize(Vector2Subtract(this->position, whoid.position));
+            positionDifference *= (1 / distanceToWhoid);
 
-            for (int gridId : worldGrid[currentRow][currentCell])
-            {
-                if (gridId < MAX_BOIDS)
-                    continue;
-
-                Whoid &otherWhoid = whoidGroup[gridId - MAX_BOIDS];
-
-                float distanceToWhoid = Vector2Distance(this->position, otherWhoid.position);
-
-                if (distanceToWhoid <= WHOID_SEPARATION_RADIUS && distanceToWhoid > 1)
-                {
-                    whoidsInRange++;
-
-                    Vector2 positionDifference = Vector2Normalize(Vector2Subtract(this->position, otherWhoid.position));
-
-                    separationTargetDirection += positionDifference;
-                }
-            }
+            separationTargetDirection += positionDifference;
         }
     }
+
     if (whoidsInRange > 0)
     {
         separationTargetDirection /= whoidsInRange;
@@ -89,7 +77,9 @@ void Whoid::SteerWhoid(const SpatialGrid &worldGrid, std::array<Whoid, MAX_WHOID
     }
 
     edgeAvoidanceTargetDirection = Vector2Normalize(edgeAvoidanceTargetDirection) * WHOID_SPEED;
-    edgeAvoidanceAcceleration += (edgeAvoidanceTargetDirection)*GetFrameTime() * WHOID_SPEED;
+    edgeAvoidanceAcceleration += (edgeAvoidanceTargetDirection)*GetFrameTime();
+
+    separationAcceleration *= GetFrameTime();
 
     totalWhoidAcceleration += separationAcceleration + edgeAvoidanceAcceleration;
 

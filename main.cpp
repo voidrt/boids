@@ -6,6 +6,7 @@
 
 static Camera2D camera = Camera2D();
 int debugSelectedBoid = 14;
+int debugSelectedWhoid = 3005;
 bool showDebugRadius = false;
 bool showDebugGrid = false;
 
@@ -140,6 +141,10 @@ void UpdateGame(void)
 
     for (Boid &boid : boidsArray)
     {
+        if (!boid.isAlive)
+
+            continue;
+
         int currentCell = (boid.position.x / CELL_SIZE);
         int currentRow = (boid.position.y / CELL_SIZE);
 
@@ -248,6 +253,10 @@ void DrawFrame(void)
 
     for (Whoid &whoid : whoidsArray)
     {
+        if (showDebugGrid && whoid.identifier == debugSelectedWhoid)
+        {
+            DrawCircleV(whoid.position, WHOID_PERCEPTION_RADIUS, {255, 195, 5, 50});
+        }
         whoid.DrawWhoid();
     }
 

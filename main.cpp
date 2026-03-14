@@ -126,7 +126,6 @@ void UpdateGame(void)
         currentRow = std::clamp(currentRow, 0, ROWS - 1);
 
         worldGrid[currentRow][currentCell].push_back(whoid.identifier);
-        // std::cout << whoid.identifier << std::endl;
     }
 
     for (Whoid &whoid : whoidsArray)

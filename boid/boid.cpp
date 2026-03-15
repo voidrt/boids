@@ -159,7 +159,7 @@ void Boid::SteerBoid(const std::array<Boid, MAX_BOIDS> &flock, const std::array<
 
     if (whoidsInRange > 0)
     {
-        whoidSeparationTargetDirection /= whoidsInRange;
+        whoidSeparationTargetDirection *= (1 / whoidsInRange);
         whoidSeparationTargetDirection = Vector2Normalize(whoidSeparationTargetDirection) * BOID_SPEED;
         whoidSeparationAcceleration = Vector2Subtract(whoidSeparationTargetDirection, this->velocity);
         whoidSeparationAcceleration *= BOID_TO_WHOID_SEPARATION_STRENGTH;
@@ -168,5 +168,5 @@ void Boid::SteerBoid(const std::array<Boid, MAX_BOIDS> &flock, const std::array<
     totalBoidAcceleration += whoidSeparationAcceleration + cohesionAcceleration + alignmentAcceleration + separationAcceleration;
 
     this->velocity += (totalBoidAcceleration * GetFrameTime());
-    this->velocity = Vector2ClampValue(this->velocity, BOID_SPEED / 1.5, BOID_SPEED);
+    this->velocity = Vector2ClampValue(this->velocity, BOID_SPEED / 3, BOID_SPEED);
 }

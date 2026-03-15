@@ -6,7 +6,6 @@
 
 static Camera2D camera = Camera2D();
 int debugSelectedBoid = 14;
-int debugSelectedWhoid = 3005;
 bool showDebugRadius = false;
 bool showDebugGrid = false;
 
@@ -253,10 +252,7 @@ void DrawFrame(void)
 
     for (Whoid &whoid : whoidsArray)
     {
-        if (showDebugGrid && whoid.identifier == debugSelectedWhoid)
-        {
-            DrawCircleV(whoid.position, WHOID_PERCEPTION_RADIUS, {255, 195, 5, 50});
-        }
+
         whoid.DrawWhoid();
     }
 

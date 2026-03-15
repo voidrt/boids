@@ -11,7 +11,7 @@ void Whoid::DrawWhoid()
         WHOID_SIZE,
         WHOID_SIZE / 3,
     };
-    DrawRectanglePro(whoidBody, (Vector2){whoidBody.width / 2, whoidBody.height / 2}, this->rotation, {100, 110, 147, 255});
+    DrawRectanglePro(whoidBody, (Vector2){whoidBody.width / 2, whoidBody.height / 2}, this->rotation, {150, 150, 187, 255});
 }
 
 void Whoid::MoveWhoid()

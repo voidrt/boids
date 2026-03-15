@@ -3,4 +3,3 @@ Has optimization patterns like spatial partition, square distance check, vector 
 
 boids :D
 
-![Boids v1.0.1](https://i.imgur.com/2wclUH4.gif)

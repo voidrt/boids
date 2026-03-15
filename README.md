@@ -3,4 +3,4 @@ Has optimization patterns like spatial partition, square distance check, vector 
 
 boids :D
 
-https://github.com/user-attachments/assets/9b571811-00a0-418d-8caa-756b0f20732f
+https://github.com/user-attachments/assets/525f77b3-cc29-42ee-b992-cf0c95f7f04a

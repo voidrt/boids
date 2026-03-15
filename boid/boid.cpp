@@ -43,7 +43,13 @@ void Boid::SteerBoid(const std::array<Boid, MAX_BOIDS> &flock, const std::array<
 {
     float whoidsInRange{};
     float boidsInRange{};
-    int boidsInSeparationRange{};
+    float boidsInSeparationRange{};
+
+    float perceptionRadiusSqr = (BOID_PERCEPTION_RADIUS * BOID_PERCEPTION_RADIUS);
+    float separationRadiusSqr = (BOID_SEPARATION_RADIUS * BOID_SEPARATION_RADIUS);
+    float whoidSeparationRadiusSqr = (BOID_TO_WHOID_PERCEPTION_RADIUS * BOID_TO_WHOID_PERCEPTION_RADIUS);
+    float whoidSizeSqr = (WHOID_SIZE * WHOID_SIZE);
+
     Vector2 alignmentAcceleration = (Vector2){0.0f, 0.0f};
     Vector2 separationTargetDirection = (Vector2){0.0f, 0.0f};
     Vector2 separationAcceleration = (Vector2){0.0f, 0.0f};
@@ -72,12 +78,13 @@ void Boid::SteerBoid(const std::array<Boid, MAX_BOIDS> &flock, const std::array<
 
                 if (this->identifier == flock[gridId].identifier)
                     continue;
+
                 if (!flock[gridId].isAlive)
                     continue;
 
-                float distanceToFlock = Vector2Distance(this->position, flock[gridId].position);
+                float distanceToFlockSqr = Vector2DistanceSqr(this->position, flock[gridId].position);
 
-                if (distanceToFlock < BOID_PERCEPTION_RADIUS && distanceToFlock > 0)
+                if (distanceToFlockSqr < perceptionRadiusSqr)
                 {
                     boidsInRange++;
 
@@ -85,13 +92,11 @@ void Boid::SteerBoid(const std::array<Boid, MAX_BOIDS> &flock, const std::array<
 
                     cohesionTargetDirection += Vector2Subtract(flock[gridId].position, this->position);
 
-                    if (distanceToFlock < BOID_SEPARATION_RADIUS && distanceToFlock > 0)
+                    if (distanceToFlockSqr <= separationRadiusSqr && distanceToFlockSqr > 1)
                     {
                         boidsInSeparationRange++;
 
-                        Vector2 positionDifference = Vector2Normalize(Vector2Subtract(this->position, flock[gridId].position));
-
-                        positionDifference *= (1 / distanceToFlock);
+                        Vector2 positionDifference = Vector2Subtract(this->position, flock[gridId].position) / distanceToFlockSqr;
 
                         separationTargetDirection += positionDifference;
                     }
@@ -135,21 +140,19 @@ void Boid::SteerBoid(const std::array<Boid, MAX_BOIDS> &flock, const std::array<
 
                 int whoidId = gridId - MAX_BOIDS;
 
-                float entitySizeSum = (WHOID_SIZE / 2) + this->size;
+                float entitySizeSumSqr = (whoidSizeSqr / 2) + (this->size * this->size);
 
-                float distanceToWhoid = Vector2Distance(this->position, whoidGroup[whoidId].position) - entitySizeSum;
+                float distanceToWhoidSqr = Vector2DistanceSqr(this->position, whoidGroup[whoidId].position) - entitySizeSumSqr;
 
-                if (distanceToWhoid < BOID_TO_WHOID_PERCEPTION_RADIUS && distanceToWhoid > WHOID_SIZE)
+                if (distanceToWhoidSqr < whoidSeparationRadiusSqr && distanceToWhoidSqr > whoidSizeSqr)
                 {
                     whoidsInRange++;
 
-                    Vector2 positionDifference = Vector2Normalize(Vector2Subtract(this->position, whoidGroup[whoidId].position));
-
-                    positionDifference *= (1 / distanceToWhoid);
+                    Vector2 positionDifference = Vector2Subtract(this->position, whoidGroup[whoidId].position) / distanceToWhoidSqr;
 
                     whoidSeparationTargetDirection += positionDifference;
                 }
-                else if (distanceToWhoid <= entitySizeSum)
+                else if (distanceToWhoidSqr <= entitySizeSumSqr)
                 {
                     this->isAlive = false;
                 }
@@ -168,5 +171,5 @@ void Boid::SteerBoid(const std::array<Boid, MAX_BOIDS> &flock, const std::array<
     totalBoidAcceleration += whoidSeparationAcceleration + cohesionAcceleration + alignmentAcceleration + separationAcceleration;
 
     this->velocity += (totalBoidAcceleration * GetFrameTime());
-    this->velocity = Vector2ClampValue(this->velocity, BOID_SPEED / 3, BOID_SPEED);
+    this->velocity = Vector2ClampValue(this->velocity, BOID_SPEED / 2, BOID_SPEED);
 }

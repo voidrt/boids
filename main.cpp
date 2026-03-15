@@ -2,7 +2,6 @@
 #include "whoid/whoid.h"
 #include <raymath.h>
 #include <algorithm>
-#include <iostream>
 
 static Camera2D camera = Camera2D();
 int debugSelectedBoid = 14;
@@ -18,21 +17,17 @@ void HandleCameraControl(Camera2D &camera)
     camera.zoom = Clamp(expf(logf(camera.zoom) + ((float)GetMouseWheelMove() * 0.1f)), 0.1f, 0.2f);
 
     if (IsKeyDown(KEY_D))
-    {
         camera.offset.x -= 10.0f;
-    }
+
     if (IsKeyDown(KEY_A))
-    {
         camera.offset.x += 10.0f;
-    }
+
     if (IsKeyDown(KEY_W))
-    {
         camera.offset.y += 10.0f;
-    }
+
     if (IsKeyDown(KEY_S))
-    {
         camera.offset.y -= 10.0f;
-    }
+
     if (IsKeyPressed(KEY_G))
         ++debugSelectedBoid;
     if (IsKeyPressed(KEY_B))
@@ -44,7 +39,7 @@ void HandleCameraControl(Camera2D &camera)
 void InitWorld(void)
 {
     camera.offset = (Vector2){(SCREEN_WIDTH / 2.0f), (SCREEN_HEIGHT / 2.0f)};
-    camera.target = (Vector2){WORLD_WIDTH / 2, WORLD_HEIGHT / 2};
+    camera.target = (Vector2){WORLD_WIDTH / 2, (WORLD_HEIGHT / 2) - 250};
     camera.zoom = 0.1f;
 
     InitWindow((SCREEN_WIDTH), (SCREEN_HEIGHT), "Boids swimming");
@@ -53,15 +48,23 @@ void InitWorld(void)
 
 void PopulateWorld(void)
 {
-    float positionX;
-    float positionY;
-    float velocityX;
-    float velocityY;
-    int size;
+    for (auto &row : worldGrid)
+    {
+        for (auto &cell : row)
+        {
+            cell.reserve(ESTIMATE_BOID_DISTRIBUTION);
+        }
+    }
+
+    float positionX{};
+    float positionY{};
+    float velocityX{};
+    float velocityY{};
+    int sizeDeviation{};
 
     for (Boid &boid : boidsArray)
     {
-        size = GetRandomValue(BOID_BASE_SIZE - 5, BOID_BASE_SIZE + 5);
+        sizeDeviation = GetRandomValue(-5, 5);
 
         positionX = GetRandomValue(0, WORLD_WIDTH);
         positionY = GetRandomValue(0, WORLD_HEIGHT);
@@ -72,7 +75,7 @@ void PopulateWorld(void)
         boid.isAlive = true;
         boid.position = (Vector2){positionX, positionY};
         boid.velocity = (Vector2){velocityX, velocityY};
-        boid.size = size;
+        boid.size = BOID_BASE_SIZE + sizeDeviation;
         boid.identifier = &boid - &boidsArray[0];
         boid.color = (Color){(unsigned char)(GetRandomValue(20, 230)), (unsigned char)(GetRandomValue(20, 230)), (unsigned char)(GetRandomValue(20, 230)), 255};
     }
@@ -83,7 +86,7 @@ void PopulateWorld(void)
         velocityX = GetRandomValue(-WHOID_SPEED, WHOID_SPEED);
         velocityY = GetRandomValue(-WHOID_SPEED, WHOID_SPEED);
 
-        while (fabs(velocityX) < WHOID_SPEED || fabs(velocityY) < WHOID_SPEED)
+        while (fabs(velocityX) < WHOID_SPEED / 1.5 || fabs(velocityY) < WHOID_SPEED / 1.5)
         {
             velocityX = GetRandomValue(-WHOID_SPEED, WHOID_SPEED);
             velocityY = GetRandomValue(-WHOID_SPEED, WHOID_SPEED);
@@ -96,14 +99,6 @@ void PopulateWorld(void)
         whoid.velocity = (Vector2){velocityX, velocityY};
         whoid.position = (Vector2){positionX, positionY};
         whoid.rotation = 0;
-    }
-
-    for (auto &row : worldGrid)
-    {
-        for (auto &cell : row)
-        {
-            cell.reserve(ESTIMATE_BOID_DISTRIBUTION);
-        }
     }
 }
 
@@ -141,7 +136,6 @@ void UpdateGame(void)
     for (Boid &boid : boidsArray)
     {
         if (!boid.isAlive)
-
             continue;
 
         int currentCell = (boid.position.x / CELL_SIZE);
@@ -174,10 +168,29 @@ void DrawFrame(void)
     BeginDrawing();
     BeginMode2D(camera);
 
-    ClearBackground((Color){5, 5, 10, 255});
+    ClearBackground((Color){10, 10, 20, 255});
 
     DrawText(TextFormat("FPS: %d", GetFPS()), 1, 1 - 500, 200, RAYWHITE);
     DrawText(TextFormat("Grid count: %d", COLUMNS * ROWS), SCREEN_WIDTH, 1 - 500, 200, RAYWHITE);
+
+    for (Boid &boid : boidsArray)
+    {
+        if (!boid.isAlive)
+            continue;
+
+        boid.DrawBoid();
+        if (boid.identifier == debugSelectedBoid && showDebugRadius)
+        {
+            DrawCircleV(boid.position, BOID_TO_WHOID_PERCEPTION_RADIUS, {100, 255, 100, 255});
+            DrawCircleV(boid.position, BOID_PERCEPTION_RADIUS, {255, 195, 2, 255});
+            DrawCircleV(boid.position, BOID_SEPARATION_RADIUS, {255, 5, 5, 255});
+        }
+    }
+
+    for (Whoid &whoid : whoidsArray)
+    {
+        whoid.DrawWhoid();
+    }
 
     if (showDebugGrid)
     {
@@ -215,45 +228,25 @@ void DrawFrame(void)
 
                 deltaCellX *= CELL_SIZE;
                 deltaCellY *= CELL_SIZE;
-                Color gridColor = {255, 255, 16, 255}; // orange
+                Color gridColor = {255, 255, 16, 255}; // yellow
 
                 Rectangle cellRect = {(float)deltaCellX, (float)deltaCellY, CELL_SIZE, CELL_SIZE};
 
                 mainBoid.DrawBoid();
                 if (abs(deltaX) <= 1 && abs(deltaY) <= 1)
                 {
-                    gridColor = {255, 143, 10, 255};
-                    DrawRectangleLinesEx(cellRect, 20, gridColor);
+                    gridColor = {255, 143, 10, 255}; // orange
+                    DrawRectangleLinesEx(cellRect, 10, gridColor);
                 }
 
                 if (deltaX == 0 && deltaY == 0)
                 {
                     gridColor = {255, 5, 5, 255}; // red
-                    DrawRectangleLinesEx(cellRect, 20, gridColor);
+                    DrawRectangleLinesEx(cellRect, 10, gridColor);
                 }
                 DrawRectangleLinesEx(cellRect, 10, gridColor);
             }
         }
-    }
-
-    for (Boid &boid : boidsArray)
-    {
-        if (!boid.isAlive)
-            continue;
-
-        boid.DrawBoid();
-        if (boid.identifier == debugSelectedBoid && showDebugRadius)
-        {
-            DrawCircleV(boid.position, BOID_TO_WHOID_PERCEPTION_RADIUS, {100, 255, 100, 255});
-            DrawCircleV(boid.position, BOID_PERCEPTION_RADIUS, {255, 195, 2, 255});
-            DrawCircleV(boid.position, BOID_SEPARATION_RADIUS, {255, 5, 5, 255});
-        }
-    }
-
-    for (Whoid &whoid : whoidsArray)
-    {
-
-        whoid.DrawWhoid();
     }
 
     EndMode2D();
@@ -268,9 +261,6 @@ void UpdateDrawFrame(void)
 
 int main()
 {
-    std::ios_base::sync_with_stdio(false);
-    std::cin.tie(NULL);
-
     InitWorld();
     PopulateWorld();
 

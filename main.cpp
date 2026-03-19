@@ -41,6 +41,7 @@ void InitWorld(void)
     camera.offset = (Vector2){(SCREEN_WIDTH / 2.0f), (SCREEN_HEIGHT / 2.0f)};
     camera.target = (Vector2){WORLD_WIDTH / 2, (WORLD_HEIGHT / 2) - 250};
     camera.zoom = 0.1f;
+    SetConfigFlags(FLAG_MSAA_4X_HINT);
 
     InitWindow((SCREEN_WIDTH), (SCREEN_HEIGHT), "Boids swimming");
     SetTargetFPS(60);
@@ -102,7 +103,7 @@ void PopulateWorld(void)
     }
 }
 
-void UpdateGame(void)
+void UpdateFrame(void)
 {
     for (auto &row : worldGrid)
     {
@@ -255,7 +256,7 @@ void DrawFrame(void)
 
 void UpdateDrawFrame(void)
 {
-    UpdateGame();
+    UpdateFrame();
     DrawFrame();
 }
 

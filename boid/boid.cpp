@@ -1,7 +1,6 @@
 #include "boid.h"
 #include <raymath.h>
 #include <algorithm>
-#include <iostream>
 
 void Boid::DrawBoid()
 {

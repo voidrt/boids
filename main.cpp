@@ -1,6 +1,4 @@
 #include "boid/boid.h"
-#include "whoid/whoid.h"
-#include <raymath.h>
 #include <algorithm>
 
 static Camera2D camera = Camera2D();
@@ -9,7 +7,6 @@ bool showDebugRadius = false;
 bool showDebugGrid = false;
 
 static std::array<Boid, MAX_BOIDS> boidsArray = {0};
-static std::array<Whoid, MAX_WHOIDS> whoidsArray = {0};
 SpatialGrid worldGrid;
 
 void HandleCameraControl(Camera2D &camera)
@@ -18,13 +15,10 @@ void HandleCameraControl(Camera2D &camera)
 
     if (IsKeyDown(KEY_D))
         camera.offset.x -= 10.0f;
-
     if (IsKeyDown(KEY_A))
         camera.offset.x += 10.0f;
-
     if (IsKeyDown(KEY_W))
         camera.offset.y += 10.0f;
-
     if (IsKeyDown(KEY_S))
         camera.offset.y -= 10.0f;
 
@@ -65,46 +59,25 @@ void PopulateWorld(void)
 
     for (Boid &boid : boidsArray)
     {
-        sizeDeviation = GetRandomValue(-5, 5);
+        sizeDeviation = GetRandomValue(-6, 6);
 
         positionX = GetRandomValue(0, WORLD_WIDTH);
         positionY = GetRandomValue(0, WORLD_HEIGHT);
 
         velocityX = GetRandomValue(-(BOID_SPEED), BOID_SPEED);
         velocityY = GetRandomValue(-(BOID_SPEED), BOID_SPEED);
-
-        boid.isAlive = true;
+        boid.size = BOID_BASE_SIZE + sizeDeviation;
         boid.position = (Vector2){positionX, positionY};
         boid.velocity = (Vector2){velocityX, velocityY};
-        boid.size = BOID_BASE_SIZE + sizeDeviation;
         boid.identifier = &boid - &boidsArray[0];
         boid.color = (Color){(unsigned char)(GetRandomValue(20, 230)), (unsigned char)(GetRandomValue(20, 230)), (unsigned char)(GetRandomValue(20, 230)), 255};
-    }
-
-    for (Whoid &whoid : whoidsArray)
-    {
-
-        velocityX = GetRandomValue(-WHOID_SPEED, WHOID_SPEED);
-        velocityY = GetRandomValue(-WHOID_SPEED, WHOID_SPEED);
-
-        while (fabs(velocityX) < WHOID_SPEED / 1.5 || fabs(velocityY) < WHOID_SPEED / 1.5)
-        {
-            velocityX = GetRandomValue(-WHOID_SPEED, WHOID_SPEED);
-            velocityY = GetRandomValue(-WHOID_SPEED, WHOID_SPEED);
-        }
-
-        positionX = GetRandomValue(100, WORLD_WIDTH - 100);
-        positionY = GetRandomValue(100, WORLD_HEIGHT - 100);
-
-        whoid.identifier = (&whoid - &whoidsArray[0]) + MAX_BOIDS;
-        whoid.velocity = (Vector2){velocityX, velocityY};
-        whoid.position = (Vector2){positionX, positionY};
-        whoid.rotation = 0;
     }
 }
 
 void UpdateFrame(void)
 {
+    HandleCameraControl(camera);
+
     for (auto &row : worldGrid)
     {
         for (auto &cell : row)
@@ -113,31 +86,8 @@ void UpdateFrame(void)
         }
     }
 
-    for (Whoid &whoid : whoidsArray)
-    {
-        int currentCell = (whoid.position.x / CELL_SIZE);
-        int currentRow = (whoid.position.y / CELL_SIZE);
-
-        currentCell = std::clamp(currentCell, 0, COLUMNS - 1);
-        currentRow = std::clamp(currentRow, 0, ROWS - 1);
-
-        worldGrid[currentRow][currentCell].push_back(whoid.identifier);
-    }
-
-    for (Whoid &whoid : whoidsArray)
-    {
-        whoid.SteerWhoid(worldGrid, whoidsArray);
-    }
-
-    for (Whoid &whoid : whoidsArray)
-    {
-        whoid.MoveWhoid();
-    }
-
     for (Boid &boid : boidsArray)
     {
-        if (!boid.isAlive)
-            continue;
 
         int currentCell = (boid.position.x / CELL_SIZE);
         int currentRow = (boid.position.y / CELL_SIZE);
@@ -150,15 +100,13 @@ void UpdateFrame(void)
 
     for (Boid &boid : boidsArray)
     {
-        if (!boid.isAlive)
-            continue;
-        boid.SteerBoid(boidsArray, whoidsArray, worldGrid);
+
+        boid.SteerBoid(boidsArray, worldGrid);
     }
 
     for (Boid &boid : boidsArray)
     {
-        if (!boid.isAlive)
-            continue;
+
         boid.MoveBoid();
     }
 }
@@ -173,24 +121,17 @@ void DrawFrame(void)
 
     DrawText(TextFormat("FPS: %d", GetFPS()), 1, 1 - 500, 200, RAYWHITE);
     DrawText(TextFormat("Grid count: %d", COLUMNS * ROWS), SCREEN_WIDTH, 1 - 500, 200, RAYWHITE);
+    DrawText(TextFormat("Boid count: %d", MAX_BOIDS), WORLD_WIDTH - SCREEN_WIDTH, 1 - 500, 200, RAYWHITE);
 
     for (Boid &boid : boidsArray)
     {
-        if (!boid.isAlive)
-            continue;
 
         boid.DrawBoid();
         if (boid.identifier == debugSelectedBoid && showDebugRadius)
         {
-            DrawCircleV(boid.position, BOID_TO_WHOID_PERCEPTION_RADIUS, {100, 255, 100, 255});
             DrawCircleV(boid.position, BOID_PERCEPTION_RADIUS, {255, 195, 2, 255});
             DrawCircleV(boid.position, BOID_SEPARATION_RADIUS, {255, 5, 5, 255});
         }
-    }
-
-    for (Whoid &whoid : whoidsArray)
-    {
-        whoid.DrawWhoid();
     }
 
     if (showDebugGrid)
@@ -267,7 +208,6 @@ int main()
 
     while (!WindowShouldClose())
     {
-        HandleCameraControl(camera);
         UpdateDrawFrame();
     }
     CloseWindow();

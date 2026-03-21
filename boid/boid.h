@@ -2,21 +2,33 @@
 #define BOID_H
 
 #include <raylib.h>
+#include <raymath.h>
 #include "../config.h"
-#include "../whoid/whoid.h"
+
+struct BoidForce
+{
+    Vector2 acceleration = {0};
+    Vector2 direction = {0};
+
+    void ComputeForce(float iBoidsInRange, Vector2 currentVelocity, float scaleStrength)
+    {
+        this->direction *= iBoidsInRange;
+        this->direction = Vector2Normalize(this->direction) * BOID_SPEED;
+        this->acceleration = Vector2Subtract(this->direction, currentVelocity);
+        this->acceleration *= scaleStrength;
+    };
+};
 
 struct Boid
 {
     Vector2 position;
     Vector2 velocity;
     int identifier;
-    int size;
+    float size;
     Color color;
-    bool isAlive;
 
     void DrawBoid();
     void MoveBoid();
-    void SteerBoid(const std::array<Boid, MAX_BOIDS> &flock, const std::array<Whoid, MAX_WHOIDS> &whoidGroup, const SpatialGrid &worldGrid);
+    void SteerBoid(const std::array<Boid, MAX_BOIDS> &flock, const SpatialGrid &worldGrid);
 };
-
 #endif

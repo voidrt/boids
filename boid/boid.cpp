@@ -1,5 +1,4 @@
 #include "boid.h"
-#include <raymath.h>
 #include <algorithm>
 
 void Boid::DrawBoid()
@@ -38,25 +37,18 @@ void Boid::MoveBoid()
     this->position += this->velocity;
 }
 
-void Boid::SteerBoid(const std::array<Boid, MAX_BOIDS> &flock, const std::array<Whoid, MAX_WHOIDS> &whoidGroup, const SpatialGrid &worldGrid)
+void Boid::SteerBoid(const std::array<Boid, MAX_BOIDS> &flock, const SpatialGrid &worldGrid)
 {
-    float whoidsInRange{};
     float boidsInRange{};
     float boidsInSeparationRange{};
-
     float perceptionRadiusSqr = (BOID_PERCEPTION_RADIUS * BOID_PERCEPTION_RADIUS);
     float separationRadiusSqr = (BOID_SEPARATION_RADIUS * BOID_SEPARATION_RADIUS);
-    float whoidSeparationRadiusSqr = (BOID_TO_WHOID_PERCEPTION_RADIUS * BOID_TO_WHOID_PERCEPTION_RADIUS);
-    float whoidSizeSqr = (WHOID_SIZE * WHOID_SIZE);
 
-    Vector2 alignmentAcceleration = (Vector2){0.0f, 0.0f};
-    Vector2 separationTargetDirection = (Vector2){0.0f, 0.0f};
-    Vector2 separationAcceleration = (Vector2){0.0f, 0.0f};
-    Vector2 cohesionTargetDirection = (Vector2){0.0f, 0.0f};
-    Vector2 cohesionAcceleration = (Vector2){0.0f, 0.0f};
-    Vector2 whoidSeparationTargetDirection = (Vector2){0.0f, 0.0f};
-    Vector2 whoidSeparationAcceleration = (Vector2){0.0f, 0.0f};
-    Vector2 totalBoidAcceleration = {0.0f, 0.0f};
+    BoidForce alignment{};
+    BoidForce cohesion{};
+    BoidForce separation{};
+
+    Vector2 totalBoidAcceleration = {0};
 
     int currentCell = (this->position.x / CELL_SIZE);
     int currentRow = (this->position.y / CELL_SIZE);
@@ -78,18 +70,15 @@ void Boid::SteerBoid(const std::array<Boid, MAX_BOIDS> &flock, const std::array<
                 if (this->identifier == flock[gridId].identifier)
                     continue;
 
-                if (!flock[gridId].isAlive)
-                    continue;
-
                 float distanceToFlockSqr = Vector2DistanceSqr(this->position, flock[gridId].position);
 
                 if (distanceToFlockSqr < perceptionRadiusSqr)
                 {
                     boidsInRange++;
 
-                    alignmentAcceleration += flock[gridId].velocity;
+                    alignment.direction += flock[gridId].velocity;
 
-                    cohesionTargetDirection += Vector2Subtract(flock[gridId].position, this->position);
+                    cohesion.direction += Vector2Subtract(flock[gridId].position, this->position);
 
                     if (distanceToFlockSqr <= separationRadiusSqr && distanceToFlockSqr > 1)
                     {
@@ -97,7 +86,7 @@ void Boid::SteerBoid(const std::array<Boid, MAX_BOIDS> &flock, const std::array<
 
                         Vector2 positionDifference = Vector2Subtract(this->position, flock[gridId].position) / distanceToFlockSqr;
 
-                        separationTargetDirection += positionDifference;
+                        separation.direction += positionDifference;
                     }
                 }
             }
@@ -106,68 +95,18 @@ void Boid::SteerBoid(const std::array<Boid, MAX_BOIDS> &flock, const std::array<
 
     if (boidsInRange > 0)
     {
-        alignmentAcceleration /= boidsInRange;
-        alignmentAcceleration = Vector2Normalize(alignmentAcceleration) * BOID_SPEED;
-        alignmentAcceleration = Vector2Subtract(alignmentAcceleration, this->velocity);
-        alignmentAcceleration *= BOID_ALIGNMENT_STRENGTH;
+        float iBoidsInRange = 1.0f / boidsInRange;
 
-        cohesionTargetDirection /= boidsInRange;
-        cohesionTargetDirection = Vector2Normalize(cohesionTargetDirection) * BOID_SPEED;
-        cohesionAcceleration = Vector2Subtract(cohesionTargetDirection, this->velocity);
-        cohesionAcceleration *= BOID_COHESION_STRENGTH;
-
-        if (boidsInSeparationRange > 0)
-        {
-            separationTargetDirection /= boidsInSeparationRange;
-            separationTargetDirection = Vector2Normalize(separationTargetDirection) * BOID_SPEED;
-            separationAcceleration = Vector2Subtract(separationTargetDirection, this->velocity);
-            separationAcceleration *= BOID_SEPARATION_STRENGTH;
-        }
+        alignment.ComputeForce(iBoidsInRange, this->velocity, BOID_ALIGNMENT_STRENGTH);
+        cohesion.ComputeForce(iBoidsInRange, this->velocity, BOID_COHESION_STRENGTH);
     }
-
-    for (int deltaY = -2; deltaY <= 2; deltaY++)
+    if (boidsInSeparationRange > 0)
     {
-        for (int deltaX = -2; deltaX <= 2; deltaX++)
-        {
-            int cellDeltaX = (currentCell + deltaX + COLUMNS) % COLUMNS;
-            int cellDeltaY = (currentRow + deltaY + ROWS) % ROWS;
+        float iBoidsInSeparationRange = 1.0f / boidsInSeparationRange;
 
-            for (int gridId : worldGrid[cellDeltaY][cellDeltaX])
-            {
-                if (gridId < MAX_BOIDS)
-                    continue;
-
-                int whoidId = gridId - MAX_BOIDS;
-
-                float entitySizeSumSqr = (whoidSizeSqr / 2) + (this->size * this->size);
-
-                float distanceToWhoidSqr = Vector2DistanceSqr(this->position, whoidGroup[whoidId].position) - entitySizeSumSqr;
-
-                if (distanceToWhoidSqr < whoidSeparationRadiusSqr && distanceToWhoidSqr > whoidSizeSqr)
-                {
-                    whoidsInRange++;
-
-                    Vector2 positionDifference = Vector2Subtract(this->position, whoidGroup[whoidId].position) / distanceToWhoidSqr;
-
-                    whoidSeparationTargetDirection += positionDifference;
-                }
-                else if (distanceToWhoidSqr <= entitySizeSumSqr)
-                {
-                    this->isAlive = false;
-                }
-            }
-        }
+        separation.ComputeForce(iBoidsInSeparationRange, this->velocity, BOID_SEPARATION_STRENGTH);
     }
-
-    if (whoidsInRange > 0)
-    {
-        whoidSeparationTargetDirection *= (1 / whoidsInRange);
-        whoidSeparationTargetDirection = Vector2Normalize(whoidSeparationTargetDirection) * BOID_SPEED;
-        whoidSeparationAcceleration = Vector2Subtract(whoidSeparationTargetDirection, this->velocity);
-        whoidSeparationAcceleration *= BOID_TO_WHOID_SEPARATION_STRENGTH;
-    }
-
-    totalBoidAcceleration += whoidSeparationAcceleration + cohesionAcceleration + alignmentAcceleration + separationAcceleration;
+    totalBoidAcceleration += cohesion.acceleration + alignment.acceleration + separation.acceleration;
 
     this->velocity += (totalBoidAcceleration * GetFrameTime());
     this->velocity = Vector2ClampValue(this->velocity, BOID_SPEED / 2, BOID_SPEED);

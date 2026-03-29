@@ -160,7 +160,6 @@ int main()
             rlSetUniform(7, &BOID_MIN_SPEED, SHADER_UNIFORM_FLOAT, 1);
             rlSetUniform(8, &frametime, SHADER_UNIFORM_FLOAT, 1);
             rlSetUniform(9, &worldSpace, SHADER_UNIFORM_VEC2, 1);
-
             if (frameCount % 2 == 0)
             {
                 rlBindShaderBuffer(ssbo0, 0); // in pos

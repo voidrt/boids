@@ -27,14 +27,22 @@ layout(location = 7) uniform float u_minSpeed;
 layout(location = 8) uniform float u_frameTime;
 layout(location = 9) uniform vec2 u_worldSpace;
 
+vec2 normalizeVector(vec2 v) {
+  float magnitude = sqrt((v.x * v.x) + (v.y * v.y));
+  vec2 normalizedVec = (magnitude > 0.0) ? v / magnitude : v;
+
+  return normalizedVec;
+}
+
 vec2 computeForce(vec2 sumDirection, float iBoidsInRange, vec2 currentVelocity,
                   float scaleStrength) {
+  vec2 acceleration = vec2(0.0);
+  if (iBoidsInRange == 0.0)
+    return acceleration;
 
   sumDirection *= iBoidsInRange;
-  if (length(sumDirection) == 0.0)
-    return vec2(0.0);
-  sumDirection = normalize(sumDirection) * u_maxSpeed;
-  vec2 acceleration = sumDirection - currentVelocity;
+  sumDirection = normalizeVector(sumDirection) * u_maxSpeed;
+  acceleration = sumDirection - currentVelocity;
   acceleration *= scaleStrength;
 
   return acceleration;
@@ -69,45 +77,47 @@ void main() {
     float distanceToFlockSqr =
         max(dot(positionDifference, positionDifference), 1.0);
 
-    if (distanceToFlockSqr < perceptionRadiusSqr) {
-      boidsInRange++;
+    float minDistanceCheck = step(1.0, distanceToFlockSqr);
+    float perceptionDistCheck =
+        step(distanceToFlockSqr, perceptionRadiusSqr) * minDistanceCheck;
+    float separationDistCheck =
+        step(distanceToFlockSqr, separationRadiusSqr) * minDistanceCheck;
 
-      sumAlignment += inVelocityBuffer[i];
-      sumCohesion += -positionDifference;
-    }
-    if (distanceToFlockSqr < separationRadiusSqr) {
-      boidsInSeparationRange++;
+    vec2 separationDirection = (positionDifference) / distanceToFlockSqr;
+    vec2 cohesionDirection = -positionDifference;
 
-      sumSeparation += (positionDifference / distanceToFlockSqr);
-    }
+    sumAlignment += inVelocityBuffer[i] * perceptionDistCheck;
+    sumCohesion += cohesionDirection * perceptionDistCheck;
+    sumSeparation += separationDirection * separationDistCheck;
+
+    boidsInRange += perceptionDistCheck;
+    boidsInSeparationRange += separationDistCheck;
   }
 
-  if (boidsInRange > 0.0) {
-    float iBoidsInRange = 1.0 / boidsInRange;
+  float iBoidsInRange = (boidsInRange > 0.0) ? 1.0 / boidsInRange : 0;
+  vec2 alignmentAcceleration = computeForce(
+      sumAlignment, iBoidsInRange, velocityVector, u_alignmentStrength);
 
-    vec2 alignmentAcceleration = computeForce(
-        sumAlignment, iBoidsInRange, velocityVector, u_alignmentStrength);
+  vec2 cohesionAcceleration = computeForce(sumCohesion, iBoidsInRange,
+                                           velocityVector, u_cohesionStrength);
 
-    vec2 cohesionAcceleration = computeForce(
-        sumCohesion, iBoidsInRange, velocityVector, u_cohesionStrength);
+  vec2 separationAcceleration =
+      (boidsInSeparationRange > 0.0)
+          ? computeForce(sumSeparation, (1.0 / boidsInSeparationRange),
+                         velocityVector, u_separationStrength)
+          : vec2(0.0);
 
-    totalAcceleration += alignmentAcceleration + cohesionAcceleration;
-  }
-
-  if (boidsInSeparationRange > 0.0) {
-    float iBoidsInSepRange = 1.0 / boidsInSeparationRange;
-
-    vec2 separationAcceleration = computeForce(
-        sumSeparation, iBoidsInSepRange, velocityVector, u_separationStrength);
-
-    totalAcceleration += separationAcceleration;
-  }
+  totalAcceleration +=
+      cohesionAcceleration + separationAcceleration + alignmentAcceleration;
 
   velocityVector += (totalAcceleration * u_frameTime);
 
   float speed = length(velocityVector);
+  
   if (speed > u_maxSpeed) {
-    velocityVector = (velocityVector / speed) * u_maxSpeed;
+    velocityVector = normalizeVector(velocityVector) * u_maxSpeed;
+  } else if (speed < u_minSpeed) {
+    velocityVector = normalizeVector(velocityVector) * u_minSpeed;
   }
 
   positionVector += velocityVector;

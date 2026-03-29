@@ -11,6 +11,7 @@ bool showDebugGrid = false;
 static std::array<Boid, MAX_BOIDS> boidsArray = {0};
 static std::array<Vector2, MAX_BOIDS> boidPositionArray = {0};
 static std::array<Vector2, MAX_BOIDS> boidVelocityArray = {0};
+int frameCount{};
 
 void HandleCameraControl(Camera2D &camera)
 {
@@ -85,6 +86,7 @@ void PopulateWorld(void)
 
 void UpdateFrame(void)
 {
+    ++frameCount;
     HandleCameraControl(camera);
 
     for (int i{}; i < MAX_BOIDS; ++i)
@@ -132,16 +134,19 @@ int main()
     InitWorld();
     PopulateWorld();
 
-    float frametime = GetFrameTime();
     Vector2 worldSpace = (Vector2){WORLD_WIDTH, WORLD_HEIGHT};
 
     unsigned int computeShader = ReadComputeShader();
-
+    // in pos,vel
     unsigned int ssbo0 = rlLoadShaderBuffer(MAX_BOIDS * sizeof(Vector2), boidPositionArray.data(), RL_DYNAMIC_COPY);
     unsigned int ssbo1 = rlLoadShaderBuffer(MAX_BOIDS * sizeof(Vector2), boidVelocityArray.data(), RL_DYNAMIC_COPY);
+    // out pos,vel
+    unsigned int ssbo2 = rlLoadShaderBuffer(MAX_BOIDS * sizeof(Vector2), boidPositionArray.data(), RL_DYNAMIC_COPY);
+    unsigned int ssbo3 = rlLoadShaderBuffer(MAX_BOIDS * sizeof(Vector2), boidVelocityArray.data(), RL_DYNAMIC_COPY);
 
     while (!WindowShouldClose())
     {
+        float frametime = GetFrameTime();
         {
             rlEnableShader(computeShader);
 
@@ -149,17 +154,29 @@ int main()
             rlSetUniform(1, &BOID_ALIGNMENT_STRENGTH, SHADER_UNIFORM_FLOAT, 1);
             rlSetUniform(2, &BOID_COHESION_STRENGTH, SHADER_UNIFORM_FLOAT, 1);
             rlSetUniform(3, &BOID_SEPARATION_STRENGTH, SHADER_UNIFORM_FLOAT, 1);
-            rlSetUniform(4, &BOID_MAX_SPEED, SHADER_UNIFORM_FLOAT, 1);
-            rlSetUniform(5, &BOID_MIN_SPEED, SHADER_UNIFORM_FLOAT, 1);
-            rlSetUniform(6, &frametime, SHADER_UNIFORM_FLOAT, 1);
-            rlSetUniform(7, &worldSpace, SHADER_UNIFORM_VEC2, 1);
+            rlSetUniform(4, &BOID_PERCEPTION_RADIUS, RL_SHADER_UNIFORM_FLOAT, 1);
+            rlSetUniform(5, &BOID_SEPARATION_RADIUS, RL_SHADER_UNIFORM_FLOAT, 1);
+            rlSetUniform(6, &BOID_MAX_SPEED, SHADER_UNIFORM_FLOAT, 1);
+            rlSetUniform(7, &BOID_MIN_SPEED, SHADER_UNIFORM_FLOAT, 1);
+            rlSetUniform(8, &frametime, SHADER_UNIFORM_FLOAT, 1);
+            rlSetUniform(9, &worldSpace, SHADER_UNIFORM_VEC2, 1);
 
-            rlBindShaderBuffer(ssbo0, 0);
-            rlBindShaderBuffer(ssbo1, 1);
+            if (frameCount % 2 == 0)
+            {
+                rlBindShaderBuffer(ssbo0, 0); // in pos
+                rlBindShaderBuffer(ssbo1, 1); // in vel
+                rlBindShaderBuffer(ssbo2, 2); // out pos
+                rlBindShaderBuffer(ssbo3, 3); // out vel
+            }
+            else
+            {
+                rlBindShaderBuffer(ssbo0, 2); // out pos
+                rlBindShaderBuffer(ssbo1, 3); // out vel
+                rlBindShaderBuffer(ssbo2, 0); // in pos
+                rlBindShaderBuffer(ssbo3, 1); // in vel
+            }
 
             rlComputeShaderDispatch(MAX_BOIDS / 256, 1, 1);
-
-            // boidPositionArray[debugSelectedBoid] = (Vector2){-100000.0f, -100000.0f};
 
             rlReadShaderBuffer(ssbo0, boidPositionArray.data(), MAX_BOIDS * sizeof(Vector2), 0);
             rlReadShaderBuffer(ssbo1, boidVelocityArray.data(), MAX_BOIDS * sizeof(Vector2), 0);

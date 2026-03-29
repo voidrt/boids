@@ -2,31 +2,42 @@
 
 layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
-layout(std430, binding = 0) buffer ssbo0 { vec2 positionBuffer[]; };
-layout(std430, binding = 1) buffer ssbo1 { vec2 velocityBuffer[]; };
+layout(std430, binding = 0) readonly buffer inputPosition {
+  vec2 inPositionBuffer[];
+};
+layout(std430, binding = 1) readonly buffer inputVelocity {
+  vec2 inVelocityBuffer[];
+};
+
+layout(std430, binding = 2) writeonly buffer outputPosition {
+  vec2 outPositionBuffer[];
+};
+layout(std430, binding = 3) writeonly buffer outputVelocity {
+  vec2 outVelocityBuffer[];
+};
 
 layout(location = 0) uniform int u_maxBoids;
 layout(location = 1) uniform float u_alignmentStrength;
 layout(location = 2) uniform float u_cohesionStrength;
 layout(location = 3) uniform float u_separationStrength;
-layout(location = 4) uniform float u_maxSpeed;
-layout(location = 5) uniform float u_minSpeed;
-layout(location = 6) uniform float u_frameTime;
-layout(location = 7) uniform vec2 u_worldSpace;
+layout(location = 4) uniform float u_perceptionRadius;
+layout(location = 5) uniform float u_separationRadius;
+layout(location = 6) uniform float u_maxSpeed;
+layout(location = 7) uniform float u_minSpeed;
+layout(location = 8) uniform float u_frameTime;
+layout(location = 9) uniform vec2 u_worldSpace;
 
 vec2 computeForce(vec2 sumDirection, float iBoidsInRange, vec2 currentVelocity,
                   float scaleStrength) {
 
-  vec2 direction = sumDirection * iBoidsInRange;
-  vec2 magnitude = vec2(0.0);
+  sumDirection *= iBoidsInRange;
+  if (length(sumDirection) == 0.0)
+    return vec2(0.0);
+  sumDirection = normalize(sumDirection) * u_maxSpeed;
+  vec2 acceleration = sumDirection - currentVelocity;
+  acceleration *= scaleStrength;
 
-  if (length(direction) > 0.01) {
-    direction = normalize(direction) * u_maxSpeed;
-    magnitude = direction - currentVelocity;
-    magnitude *= scaleStrength;
-  }
-
-  return magnitude;
+  return acceleration;
 }
 
 void main() {
@@ -35,14 +46,73 @@ void main() {
   if (myIndex >= u_maxBoids)
     return;
 
-  vec2 positionVector = positionBuffer[myIndex];
-  vec2 velocityVector = velocityBuffer[myIndex];
+  float perceptionRadiusSqr = (u_perceptionRadius * u_perceptionRadius);
+  float separationRadiusSqr = (u_separationRadius * u_separationRadius);
 
-  velocityVector += vec2(0.0, 0.0);
+  vec2 positionVector = inPositionBuffer[myIndex];
+  vec2 velocityVector = inVelocityBuffer[myIndex];
+
+  vec2 totalAcceleration = vec2(0.0);
+  vec2 sumAlignment = vec2(0.0);
+  vec2 sumSeparation = vec2(0.0);
+  vec2 sumCohesion = vec2(0.0);
+
+  float boidsInRange = 0.0;
+  float boidsInSeparationRange = 0.0;
+
+  for (int i = 0; i < u_maxBoids; ++i) {
+    if (i == myIndex) {
+      continue;
+    }
+
+    vec2 positionDifference = positionVector - inPositionBuffer[i];
+    float distanceToFlockSqr =
+        max(dot(positionDifference, positionDifference), 1.0);
+
+    if (distanceToFlockSqr < perceptionRadiusSqr) {
+      boidsInRange++;
+
+      sumAlignment += inVelocityBuffer[i];
+      sumCohesion += -positionDifference;
+    }
+    if (distanceToFlockSqr < separationRadiusSqr) {
+      boidsInSeparationRange++;
+
+      sumSeparation += (positionDifference / distanceToFlockSqr);
+    }
+  }
+
+  if (boidsInRange > 0.0) {
+    float iBoidsInRange = 1.0 / boidsInRange;
+
+    vec2 alignmentAcceleration = computeForce(
+        sumAlignment, iBoidsInRange, velocityVector, u_alignmentStrength);
+
+    vec2 cohesionAcceleration = computeForce(
+        sumCohesion, iBoidsInRange, velocityVector, u_cohesionStrength);
+
+    totalAcceleration += alignmentAcceleration + cohesionAcceleration;
+  }
+
+  if (boidsInSeparationRange > 0.0) {
+    float iBoidsInSepRange = 1.0 / boidsInSeparationRange;
+
+    vec2 separationAcceleration = computeForce(
+        sumSeparation, iBoidsInSepRange, velocityVector, u_separationStrength);
+
+    totalAcceleration += separationAcceleration;
+  }
+
+  velocityVector += (totalAcceleration * u_frameTime);
+
+  float speed = length(velocityVector);
+  if (speed > u_maxSpeed) {
+    velocityVector = (velocityVector / speed) * u_maxSpeed;
+  }
+
   positionVector += velocityVector;
-
   positionVector = mod(positionVector, u_worldSpace);
 
-  velocityBuffer[myIndex] = velocityVector;
-  positionBuffer[myIndex] = positionVector;
+  outVelocityBuffer[myIndex] = velocityVector;
+  outPositionBuffer[myIndex] = positionVector;
 }

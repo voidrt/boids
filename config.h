@@ -4,11 +4,11 @@
 #include <array>
 #include <vector>
 
-inline constexpr int MAX_BOIDS = 20480;
+inline constexpr int MAX_BOIDS = 256 * 20;
 inline constexpr float BOID_MAX_SPEED = 18.0f;
 inline constexpr float BOID_MIN_SPEED = 12.0f;
 inline constexpr float BOID_BASE_SIZE = 10.0f;
-inline constexpr float BOID_SEPARATION_RADIUS = 75.0f;
+inline constexpr float BOID_SEPARATION_RADIUS = 90.0f;
 inline constexpr float BOID_PERCEPTION_RADIUS = 200.0f;
 inline constexpr float BOID_SEPARATION_STRENGTH = 2.8f;
 inline constexpr float BOID_ALIGNMENT_STRENGTH = 1.f;

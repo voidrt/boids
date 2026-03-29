@@ -1,4 +1,6 @@
 #include "boid/boid.h"
+#include <rlgl.h>
+
 #include <algorithm>
 
 static Camera2D camera = Camera2D();
@@ -7,7 +9,8 @@ bool showDebugRadius = false;
 bool showDebugGrid = false;
 
 static std::array<Boid, MAX_BOIDS> boidsArray = {0};
-SpatialGrid worldGrid;
+static std::array<Vector2, MAX_BOIDS> boidPositionArray = {0};
+static std::array<Vector2, MAX_BOIDS> boidVelocityArray = {0};
 
 void HandleCameraControl(Camera2D &camera)
 {
@@ -30,6 +33,16 @@ void HandleCameraControl(Camera2D &camera)
         showDebugGrid = !showDebugGrid;
 }
 
+unsigned int ReadComputeShader(void)
+{
+    char *shaderSourceCode = LoadFileText("/home/void/graphics/boids/Shaders/boid_compute_shader.comp");
+    auto shaderData = rlCompileShader(shaderSourceCode, RL_COMPUTE_SHADER);
+    auto computeShader = rlLoadComputeShaderProgram(shaderData);
+    UnloadFileText(shaderSourceCode);
+
+    return computeShader;
+}
+
 void InitWorld(void)
 {
     camera.offset = (Vector2){(SCREEN_WIDTH / 2.0f), (SCREEN_HEIGHT / 2.0f)};
@@ -43,13 +56,6 @@ void InitWorld(void)
 
 void PopulateWorld(void)
 {
-    for (auto &row : worldGrid)
-    {
-        for (auto &cell : row)
-        {
-            cell.reserve(ESTIMATE_BOID_DISTRIBUTION);
-        }
-    }
 
     float positionX{};
     float positionY{};
@@ -57,20 +63,23 @@ void PopulateWorld(void)
     float velocityY{};
     int sizeDeviation{};
 
-    for (Boid &boid : boidsArray)
+    for (int i{}; i < MAX_BOIDS; ++i)
     {
         sizeDeviation = GetRandomValue(-6, 6);
 
         positionX = GetRandomValue(0, WORLD_WIDTH);
         positionY = GetRandomValue(0, WORLD_HEIGHT);
+        velocityX = GetRandomValue(-(BOID_MAX_SPEED), BOID_MAX_SPEED);
+        velocityY = GetRandomValue(-(BOID_MAX_SPEED), BOID_MAX_SPEED);
 
-        velocityX = GetRandomValue(-(BOID_SPEED), BOID_SPEED);
-        velocityY = GetRandomValue(-(BOID_SPEED), BOID_SPEED);
-        boid.size = BOID_BASE_SIZE + sizeDeviation;
-        boid.position = (Vector2){positionX, positionY};
-        boid.velocity = (Vector2){velocityX, velocityY};
-        boid.identifier = &boid - &boidsArray[0];
-        boid.color = (Color){(unsigned char)(GetRandomValue(20, 230)), (unsigned char)(GetRandomValue(20, 230)), (unsigned char)(GetRandomValue(20, 230)), 255};
+        boidsArray[i].size = BOID_BASE_SIZE + sizeDeviation;
+        boidsArray[i].position = (Vector2){positionX, positionY};
+        boidsArray[i].velocity = (Vector2){velocityX, velocityY};
+        boidsArray[i].identifier = i;
+        boidsArray[i].color = (Color){(unsigned char)(GetRandomValue(20, 230)), (unsigned char)(GetRandomValue(20, 230)), (unsigned char)(GetRandomValue(20, 230)), 255};
+
+        boidPositionArray[i] = (Vector2){positionX, positionY};
+        boidVelocityArray[i] = (Vector2){velocityX, velocityY};
     }
 }
 
@@ -78,36 +87,10 @@ void UpdateFrame(void)
 {
     HandleCameraControl(camera);
 
-    for (auto &row : worldGrid)
+    for (int i{}; i < MAX_BOIDS; ++i)
     {
-        for (auto &cell : row)
-        {
-            cell.clear();
-        }
-    }
-
-    for (Boid &boid : boidsArray)
-    {
-
-        int currentCell = (boid.position.x / CELL_SIZE);
-        int currentRow = (boid.position.y / CELL_SIZE);
-
-        currentCell = std::clamp(currentCell, 0, COLUMNS - 1);
-        currentRow = std::clamp(currentRow, 0, ROWS - 1);
-
-        worldGrid[currentRow][currentCell].push_back(boid.identifier);
-    }
-
-    for (Boid &boid : boidsArray)
-    {
-
-        boid.SteerBoid(boidsArray, worldGrid);
-    }
-
-    for (Boid &boid : boidsArray)
-    {
-
-        boid.MoveBoid();
+        boidsArray[i].position = boidPositionArray[i];
+        boidsArray[i].velocity = boidVelocityArray[i];
     }
 }
 
@@ -123,71 +106,13 @@ void DrawFrame(void)
     DrawText(TextFormat("Grid count: %d", COLUMNS * ROWS), SCREEN_WIDTH, 1 - 500, 200, RAYWHITE);
     DrawText(TextFormat("Boid count: %d", MAX_BOIDS), WORLD_WIDTH - SCREEN_WIDTH, 1 - 500, 200, RAYWHITE);
 
-    for (Boid &boid : boidsArray)
+    for (int i{}; i < MAX_BOIDS; i++)
     {
-
-        boid.DrawBoid();
-        if (boid.identifier == debugSelectedBoid && showDebugRadius)
+        boidsArray[i].DrawBoid(boidVelocityArray[i], boidPositionArray[i]);
+        if (i == debugSelectedBoid && showDebugRadius)
         {
-            DrawCircleV(boid.position, BOID_PERCEPTION_RADIUS, {255, 195, 2, 255});
-            DrawCircleV(boid.position, BOID_SEPARATION_RADIUS, {255, 5, 5, 255});
-        }
-    }
-
-    if (showDebugGrid)
-    {
-
-        for (int y = 0; y < ROWS; y++)
-        {
-            for (int x = 0; x < COLUMNS; x++)
-            {
-                float currentCellX = x * BOID_PERCEPTION_RADIUS;
-                float currentCellY = y * BOID_PERCEPTION_RADIUS;
-
-                Rectangle cellRect = {currentCellX, currentCellY, BOID_PERCEPTION_RADIUS, BOID_PERCEPTION_RADIUS};
-
-                DrawRectangleLinesEx(cellRect, 5, {255, 255, 255, 50});
-            }
-        }
-    }
-
-    if (showDebugGrid)
-    {
-        Boid &mainBoid = boidsArray[debugSelectedBoid];
-
-        int currentCell = (mainBoid.position.x / CELL_SIZE);
-        int currentRow = (mainBoid.position.y / CELL_SIZE);
-
-        for (int deltaY = -2; deltaY <= 2; deltaY++)
-        {
-            for (int deltaX = -2; deltaX <= 2; deltaX++)
-            {
-                int deltaCellX = (currentCell + deltaX);
-                int deltaCellY = (currentRow + deltaY);
-
-                deltaCellX = (deltaCellX + COLUMNS) % COLUMNS;
-                deltaCellY = (deltaCellY + ROWS) % ROWS;
-
-                deltaCellX *= CELL_SIZE;
-                deltaCellY *= CELL_SIZE;
-                Color gridColor = {255, 255, 16, 255}; // yellow
-
-                Rectangle cellRect = {(float)deltaCellX, (float)deltaCellY, CELL_SIZE, CELL_SIZE};
-
-                mainBoid.DrawBoid();
-                if (abs(deltaX) <= 1 && abs(deltaY) <= 1)
-                {
-                    gridColor = {255, 143, 10, 255}; // orange
-                    DrawRectangleLinesEx(cellRect, 10, gridColor);
-                }
-
-                if (deltaX == 0 && deltaY == 0)
-                {
-                    gridColor = {255, 5, 5, 255}; // red
-                    DrawRectangleLinesEx(cellRect, 10, gridColor);
-                }
-                DrawRectangleLinesEx(cellRect, 10, gridColor);
-            }
+            DrawCircleV(boidPositionArray[i], BOID_PERCEPTION_RADIUS, {255, 195, 2, 255});
+            DrawCircleV(boidPositionArray[i], BOID_SEPARATION_RADIUS, {255, 5, 5, 255});
         }
     }
 
@@ -203,11 +128,44 @@ void UpdateDrawFrame(void)
 
 int main()
 {
+
     InitWorld();
     PopulateWorld();
 
+    float frametime = GetFrameTime();
+    Vector2 worldSpace = (Vector2){WORLD_WIDTH, WORLD_HEIGHT};
+
+    unsigned int computeShader = ReadComputeShader();
+
+    unsigned int ssbo0 = rlLoadShaderBuffer(MAX_BOIDS * sizeof(Vector2), boidPositionArray.data(), RL_DYNAMIC_COPY);
+    unsigned int ssbo1 = rlLoadShaderBuffer(MAX_BOIDS * sizeof(Vector2), boidVelocityArray.data(), RL_DYNAMIC_COPY);
+
     while (!WindowShouldClose())
     {
+        {
+            rlEnableShader(computeShader);
+
+            rlSetUniform(0, &MAX_BOIDS, SHADER_UNIFORM_INT, 1);
+            rlSetUniform(1, &BOID_ALIGNMENT_STRENGTH, SHADER_UNIFORM_FLOAT, 1);
+            rlSetUniform(2, &BOID_COHESION_STRENGTH, SHADER_UNIFORM_FLOAT, 1);
+            rlSetUniform(3, &BOID_SEPARATION_STRENGTH, SHADER_UNIFORM_FLOAT, 1);
+            rlSetUniform(4, &BOID_MAX_SPEED, SHADER_UNIFORM_FLOAT, 1);
+            rlSetUniform(5, &BOID_MIN_SPEED, SHADER_UNIFORM_FLOAT, 1);
+            rlSetUniform(6, &frametime, SHADER_UNIFORM_FLOAT, 1);
+            rlSetUniform(7, &worldSpace, SHADER_UNIFORM_VEC2, 1);
+
+            rlBindShaderBuffer(ssbo0, 0);
+            rlBindShaderBuffer(ssbo1, 1);
+
+            rlComputeShaderDispatch(MAX_BOIDS / 256, 1, 1);
+
+            // boidPositionArray[debugSelectedBoid] = (Vector2){-100000.0f, -100000.0f};
+
+            rlReadShaderBuffer(ssbo0, boidPositionArray.data(), MAX_BOIDS * sizeof(Vector2), 0);
+            rlReadShaderBuffer(ssbo1, boidVelocityArray.data(), MAX_BOIDS * sizeof(Vector2), 0);
+
+            rlDisableShader();
+        }
         UpdateDrawFrame();
     }
     CloseWindow();

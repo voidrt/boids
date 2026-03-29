@@ -4,20 +4,19 @@
 #include <array>
 #include <vector>
 
-#define MAX_BOIDS 9000
-#define BOID_SPEED 18
-#define BOID_BASE_SIZE 10
-#define BOID_SEPARATION_RADIUS 75
-#define BOID_PERCEPTION_RADIUS 200
-
-#define BOID_SEPARATION_STRENGTH 2.8f
-#define BOID_ALIGNMENT_STRENGTH 1.f
-#define BOID_COHESION_STRENGTH .3f
-
-#define SCREEN_WIDTH 1920
-#define SCREEN_HEIGHT 1080
-#define WORLD_WIDTH 12800.0
-#define WORLD_HEIGHT 6400.0
+inline constexpr int MAX_BOIDS = 20480;
+inline constexpr float BOID_MAX_SPEED = 18.0f;
+inline constexpr float BOID_MIN_SPEED = 12.0f;
+inline constexpr float BOID_BASE_SIZE = 10.0f;
+inline constexpr float BOID_SEPARATION_RADIUS = 75.0f;
+inline constexpr float BOID_PERCEPTION_RADIUS = 200.0f;
+inline constexpr float BOID_SEPARATION_STRENGTH = 2.8f;
+inline constexpr float BOID_ALIGNMENT_STRENGTH = 1.f;
+inline constexpr float BOID_COHESION_STRENGTH = .3f;
+inline constexpr float SCREEN_WIDTH = 1920.0f;
+inline constexpr float SCREEN_HEIGHT = 1080.0f;
+inline constexpr float WORLD_WIDTH = 18000.0f;
+inline constexpr float WORLD_HEIGHT = 9000.0f;
 
 constexpr int CELL_SIZE = BOID_PERCEPTION_RADIUS;
 constexpr int ROWS = (WORLD_HEIGHT + CELL_SIZE - 1) / CELL_SIZE;

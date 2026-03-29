@@ -1,0 +1,48 @@
+#version 430
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+layout(std430, binding = 0) buffer ssbo0 { vec2 positionBuffer[]; };
+layout(std430, binding = 1) buffer ssbo1 { vec2 velocityBuffer[]; };
+
+layout(location = 0) uniform int u_maxBoids;
+layout(location = 1) uniform float u_alignmentStrength;
+layout(location = 2) uniform float u_cohesionStrength;
+layout(location = 3) uniform float u_separationStrength;
+layout(location = 4) uniform float u_maxSpeed;
+layout(location = 5) uniform float u_minSpeed;
+layout(location = 6) uniform float u_frameTime;
+layout(location = 7) uniform vec2 u_worldSpace;
+
+vec2 computeForce(vec2 sumDirection, float iBoidsInRange, vec2 currentVelocity,
+                  float scaleStrength) {
+
+  vec2 direction = sumDirection * iBoidsInRange;
+  vec2 magnitude = vec2(0.0);
+
+  if (length(direction) > 0.01) {
+    direction = normalize(direction) * u_maxSpeed;
+    magnitude = direction - currentVelocity;
+    magnitude *= scaleStrength;
+  }
+
+  return magnitude;
+}
+
+void main() {
+  uint myIndex = gl_GlobalInvocationID.x;
+
+  if (myIndex >= u_maxBoids)
+    return;
+
+  vec2 positionVector = positionBuffer[myIndex];
+  vec2 velocityVector = velocityBuffer[myIndex];
+
+  velocityVector += vec2(0.0, 0.0);
+  positionVector += velocityVector;
+
+  positionVector = mod(positionVector, u_worldSpace);
+
+  velocityBuffer[myIndex] = velocityVector;
+  positionBuffer[myIndex] = positionVector;
+}

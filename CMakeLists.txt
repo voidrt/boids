@@ -27,7 +27,7 @@ if (NOT raylib_POPULATED)
 endif()
 
 
-add_executable(${PROJECT_NAME} main.cpp boid/boid.cpp boid/boid.h config.h)
+add_executable(${PROJECT_NAME} main.cpp config.h)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE GRAPHICS_API_OPENGL_43)
 

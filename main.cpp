@@ -5,7 +5,6 @@
 #include <raymath.h>
 #include <array>
 
-#include "build/_deps/raylib-src/src/external/glad.h"
 
 static auto camera = Camera2D();
 int debugSelectedBoid = 14;

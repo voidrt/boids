@@ -1,6 +1,7 @@
-2D Boids simulation with "predators".
-Has optimization patterns like spatial partition, square distance check, vector memory reserve, data-locality and cpu cache-miss avoidance (where I could).
+2D Boids simulation.
+Runs on a compute shader and has small optimization patterns like data-locality and cpu cache-miss avoidance (where I could).
 
 boids :D
 
-https://github.com/user-attachments/assets/525f77b3-cc29-42ee-b992-cf0c95f7f04a
+https://github.com/user-attachments/assets/bcf6382b-fb6d-4087-9f16-a3a7ed4e3aba
+

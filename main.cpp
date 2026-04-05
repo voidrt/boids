@@ -6,14 +6,11 @@
 #include <array>
 
 
-static auto camera = Camera2D();
-int debugSelectedBoid = 14;
-bool showDebugRadius = false;
-bool showDebugGrid = false;
+static Camera3D camera{};
 
-static std::array<Vector2, MAX_BOIDS> boidPositionArray = {0};
-static std::array<Vector2, MAX_BOIDS> boidVelocityArray = {0};
-int frameCount{};
+static std::array<Vector4, MAX_BOIDS> boidPositionArray = {0};
+static std::array<Vector4, MAX_BOIDS> boidVelocityArray = {0};
+static int frameCount{};
 
 unsigned int ReadComputeShader()
 {
@@ -27,9 +24,13 @@ unsigned int ReadComputeShader()
 
 void InitWorld()
 {
-    camera.offset = (Vector2){(SCREEN_WIDTH / 2.0f), (SCREEN_HEIGHT / 2.0f)};
-    camera.target = (Vector2){WORLD_WIDTH / 2, (WORLD_HEIGHT / 2) - 250};
-    camera.zoom = 0.1f;
+    camera.position = (Vector3){(WORLD_WIDTH), (WORLD_HEIGHT), (WORLD_DEPTH)};
+    camera.target = (Vector3){0.0f, 0.0f, 0.0f};
+    camera.projection = CAMERA_PERSPECTIVE;
+    camera.up = {0.0f, 1.0f, 0.0f};
+    camera.fovy = 90.0f;
+    DisableCursor();
+
     SetConfigFlags(FLAG_MSAA_4X_HINT);
 
     InitWindow((SCREEN_WIDTH), (SCREEN_HEIGHT), "Boids swimming");
@@ -40,18 +41,25 @@ void PopulateWorld()
 {
     float positionX{};
     float positionY{};
+    float positionZ{};
     float velocityX{};
     float velocityY{};
+    float velocityZ{};
 
     for (size_t i{}; i < MAX_BOIDS; ++i)
     {
         positionX = (GetRandomFValue(0, WORLD_WIDTH));
         positionY = (GetRandomFValue(0, WORLD_HEIGHT));
+        positionZ = (GetRandomFValue(0, WORLD_DEPTH));
+        boidPositionArray[i] = (Vector4){positionX, positionY, positionZ, 0.0};
+    }
+
+    for (size_t i{}; i < MAX_BOIDS; ++i)
+    {
         velocityX = (GetRandomFValue(-(BOID_MAX_SPEED), BOID_MAX_SPEED));
         velocityY = (GetRandomFValue(-(BOID_MAX_SPEED), BOID_MAX_SPEED));
-
-        boidPositionArray[i] = (Vector2){positionX, positionY};
-        boidVelocityArray[i] = (Vector2){velocityX, velocityY};
+        velocityZ = (GetRandomFValue(-(BOID_MAX_SPEED), BOID_MAX_SPEED));
+        boidVelocityArray[i] = (Vector4){velocityX, velocityY, velocityZ, 0.0};
     }
 }
 
@@ -67,12 +75,12 @@ int main()
     PopulateWorld();
 
     unsigned int computeShader = ReadComputeShader();
-    unsigned int position0 = rlLoadShaderBuffer(MAX_BOIDS * sizeof(Vector2), boidPositionArray.data(), RL_DYNAMIC_COPY);
-    unsigned int velocity0 = rlLoadShaderBuffer(MAX_BOIDS * sizeof(Vector2), boidVelocityArray.data(), RL_DYNAMIC_COPY);
-    unsigned int position1 = rlLoadShaderBuffer(MAX_BOIDS * sizeof(Vector2), boidPositionArray.data(), RL_DYNAMIC_COPY);
-    unsigned int velocity1 = rlLoadShaderBuffer(MAX_BOIDS * sizeof(Vector2), boidVelocityArray.data(), RL_DYNAMIC_COPY);
+    unsigned int position0 = rlLoadShaderBuffer(MAX_BOIDS * sizeof(Vector4), boidPositionArray.data(), RL_DYNAMIC_COPY);
+    unsigned int velocity0 = rlLoadShaderBuffer(MAX_BOIDS * sizeof(Vector4), boidVelocityArray.data(), RL_DYNAMIC_COPY);
+    unsigned int position1 = rlLoadShaderBuffer(MAX_BOIDS * sizeof(Vector4), boidPositionArray.data(), RL_DYNAMIC_COPY);
+    unsigned int velocity1 = rlLoadShaderBuffer(MAX_BOIDS * sizeof(Vector4), boidVelocityArray.data(), RL_DYNAMIC_COPY);
 
-    Vector2 worldSpace = (Vector2){WORLD_WIDTH, WORLD_HEIGHT};
+    Vector4 worldSpace = (Vector4){WORLD_WIDTH, WORLD_HEIGHT, WORLD_DEPTH, 0.0};
 
     while (!WindowShouldClose())
     {
@@ -89,7 +97,8 @@ int main()
             rlSetUniform(6, &BOID_MAX_SPEED, SHADER_UNIFORM_FLOAT, 1);
             rlSetUniform(7, &BOID_MIN_SPEED, SHADER_UNIFORM_FLOAT, 1);
             rlSetUniform(8, &frameTime, SHADER_UNIFORM_FLOAT, 1);
-            rlSetUniform(9, &worldSpace, SHADER_UNIFORM_VEC2, 1);
+            rlSetUniform(9, &worldSpace, SHADER_UNIFORM_VEC4, 1);
+            rlSetUniform(10, &SCALE, SHADER_UNIFORM_FLOAT, 1);
             if (frameCount % 2 == 0)
             {
                 rlBindShaderBuffer(position0, 0); // in pos
@@ -108,43 +117,41 @@ int main()
 
             if (frameCount % 2 == 0)
             {
-                rlReadShaderBuffer(position1, boidPositionArray.data(), sizeof(Vector2) * MAX_BOIDS, 0);
-                rlReadShaderBuffer(velocity1, boidVelocityArray.data(), sizeof(Vector2) * MAX_BOIDS, 0);
+                rlReadShaderBuffer(position1, boidPositionArray.data(), sizeof(Vector4) * MAX_BOIDS, 0);
+                rlReadShaderBuffer(velocity1, boidVelocityArray.data(), sizeof(Vector4) * MAX_BOIDS, 0);
             }
             else
             {
-                rlReadShaderBuffer(position0, boidPositionArray.data(), sizeof(Vector2) * MAX_BOIDS, 0);
-                rlReadShaderBuffer(velocity0, boidVelocityArray.data(), sizeof(Vector2) * MAX_BOIDS, 0);
+                rlReadShaderBuffer(position0, boidPositionArray.data(), sizeof(Vector4) * MAX_BOIDS, 0);
+                rlReadShaderBuffer(velocity0, boidVelocityArray.data(), sizeof(Vector4) * MAX_BOIDS, 0);
             }
             rlDisableShader();
         }
-        {
-            BeginDrawing();
-            ClearBackground((Color){202, 209, 215, 255});
-            BeginMode2D(camera);
+        BeginDrawing();
+        ClearBackground((Color){182, 189, 195, 255});
 
+        DrawText(TextFormat("FPS: %d", GetFPS()), 10, 40, 20, DARKGRAY);
+        DrawText(TextFormat("Boid count: %d", MAX_BOIDS), SCREEN_WIDTH - 190, 40, 20, DARKGRAY);
+
+        BeginMode3D(camera);
+        // DrawText(TextFormat("FPS: %d", GetFPS()), 1, 1 - 500, 350, BLACK);
+        // DrawText(TextFormat("Frame count: %d", frameCount), SCREEN_WIDTH, 1 - 500, 350, BLACK);
+        // DrawText(TextFormat("Boid count: %d", MAX_BOIDS), WORLD_WIDTH - 2 * SCREEN_WIDTH, 1 - 500, 350, BLACK);
+        {
             for (size_t i{}; i < MAX_BOIDS; ++i)
             {
-                Vector2 v1 = {40, 0};
-                Vector2 v2 = {-10, -13};
-                Vector2 v3 = {-10, 13};
-                Vector2 position = boidPositionArray[i];
-                Vector2 velocity = boidVelocityArray[i];
-
-                v1 = Vector2Rotate(v1, atan2f(velocity.y, velocity.x));
-                v2 = Vector2Rotate(v2, atan2f(velocity.y, velocity.x));
-                v3 = Vector2Rotate(v3, atan2f(velocity.y, velocity.x));
-
-                DrawTriangle(Vector2Add(v1, position), Vector2Add(v2, position), Vector2Add(v3, position), BLACK);
+                Vector3 boidPosition = (Vector3){
+                    boidPositionArray[i].x, boidPositionArray[i].y, boidPositionArray[i].z
+                };
+                float boidSize = BOID_BASE_SIZE * SCALE;
+                DrawCubeV(boidPosition, {boidSize, boidSize, boidSize}, BLACK);
             }
-
-            DrawText(TextFormat("FPS: %d", GetFPS()), 1, 1 - 500, 350, BLACK);
-            DrawText(TextFormat("Frame count: %d", frameCount), SCREEN_WIDTH, 1 - 500, 350, BLACK);
-            DrawText(TextFormat("Boid count: %d", MAX_BOIDS), WORLD_WIDTH - 2 * SCREEN_WIDTH, 1 - 500, 350, BLACK);
-
-            EndMode2D();
-            EndDrawing();
         }
+        DrawCubeWires({WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_DEPTH / 2}, WORLD_WIDTH, WORLD_HEIGHT,
+                      WORLD_DEPTH, DARKGRAY);
+        EndMode3D();
+        EndDrawing();
+
         UpdateFrame();
     }
     CloseWindow();

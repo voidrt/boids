@@ -24,7 +24,7 @@ unsigned int ReadComputeShader()
 
 void InitWorld()
 {
-    camera.position = (Vector3){(WORLD_WIDTH+20), (WORLD_HEIGHT+20), (WORLD_DEPTH+20)};
+    camera.position = (Vector3){(WORLD_WIDTH/2)+20, (WORLD_HEIGHT+20), (WORLD_DEPTH/2) + 20};
     camera.target = (Vector3){WORLD_WIDTH/2, WORLD_HEIGHT/2, WORLD_DEPTH/2};
     camera.projection = CAMERA_PERSPECTIVE;
     camera.up = {0.0f, 1.0f, 0.0f};
@@ -133,7 +133,7 @@ int main()
             rlDisableShader();
         }
         BeginDrawing();
-        ClearBackground((Color){5, 5, 10, 255});
+        ClearBackground((Color){182, 185, 190, 255});
 
         DrawText(TextFormat("FPS: %d", GetFPS()), 10, 40, 20, DARKGRAY);
         DrawText(TextFormat("Boid count: %d", MAX_BOIDS), SCREEN_WIDTH - 190, 40, 20, DARKGRAY);

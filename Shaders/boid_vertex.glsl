@@ -33,6 +33,6 @@ void main() {
     vertexView += (view * vec4(boidPosition, 1.0)).xyz;
 
     gl_Position = projection * vec4(vertexView, 1);
-    boidColor.rgb = abs(normalize(boidVelocity)) + 0.02;
+    boidColor.rgb = vec3(0.0);
     boidColor.a = 1.0;
 }

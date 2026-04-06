@@ -1,11 +1,11 @@
 #ifndef WORLD_CONFIG_H
 #define WORLD_CONFIG_H
 
-inline constexpr int MAX_BOIDS = 64 * 100;
-inline constexpr float BOID_MAX_SPEED = 0.1f;
-inline constexpr float BOID_MIN_SPEED = 0.08f;
+inline constexpr int MAX_BOIDS = 64 * 480;
+inline constexpr float BOID_MAX_SPEED = 0.3f;
+inline constexpr float BOID_MIN_SPEED = 0.24f;
 inline constexpr float BOID_BASE_SIZE = 3.0f;
-inline constexpr float SCALE = 0.05;
+inline constexpr float SCALE = 0.25;
 inline constexpr float BOID_SEPARATION_RADIUS = 6.0f;
 inline constexpr float BOID_PERCEPTION_RADIUS = 12.0f;
 inline constexpr float BOID_SEPARATION_STRENGTH = 4.8f;

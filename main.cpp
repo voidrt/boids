@@ -24,8 +24,8 @@ unsigned int ReadComputeShader()
 
 void InitWorld()
 {
-    camera.position = (Vector3){(WORLD_WIDTH), (WORLD_HEIGHT), (WORLD_DEPTH)};
-    camera.target = (Vector3){0.0f, 0.0f, 0.0f};
+    camera.position = (Vector3){(WORLD_WIDTH+20), (WORLD_HEIGHT+20), (WORLD_DEPTH+20)};
+    camera.target = (Vector3){WORLD_WIDTH/2, WORLD_HEIGHT/2, WORLD_DEPTH/2};
     camera.projection = CAMERA_PERSPECTIVE;
     camera.up = {0.0f, 1.0f, 0.0f};
     camera.fovy = 90.0f;
@@ -82,6 +82,22 @@ int main()
 
     Vector4 worldSpace = (Vector4){WORLD_WIDTH, WORLD_HEIGHT, WORLD_DEPTH, 0.0};
 
+    Shader boidShader = LoadShader("../Shaders/boid_vertex.glsl", "../Shaders/boid_fragment.glsl");
+
+    unsigned int boidVAO = rlLoadVertexArray();
+    rlEnableVertexArray(boidVAO);
+
+    Vector3 vertices[] = {
+        {-0.36, -0.5, 0.0},
+        {0.36, -0.5, 0.0},
+        {0.0f, 1.0f, 0.0f}
+    };
+
+    rlEnableVertexAttribute(0);
+    rlLoadVertexBuffer(vertices, sizeof(vertices), false);
+    rlSetVertexAttribute(0, 3, RL_FLOAT, false, 0, 0);
+    rlDisableVertexArray();
+
     while (!WindowShouldClose())
     {
         float frameTime = GetFrameTime();
@@ -114,42 +130,45 @@ int main()
                 rlBindShaderBuffer(velocity0, 3); // out vel
             }
             rlComputeShaderDispatch(MAX_BOIDS / 64, 1, 1);
-
-            if (frameCount % 2 == 0)
-            {
-                rlReadShaderBuffer(position1, boidPositionArray.data(), sizeof(Vector4) * MAX_BOIDS, 0);
-                rlReadShaderBuffer(velocity1, boidVelocityArray.data(), sizeof(Vector4) * MAX_BOIDS, 0);
-            }
-            else
-            {
-                rlReadShaderBuffer(position0, boidPositionArray.data(), sizeof(Vector4) * MAX_BOIDS, 0);
-                rlReadShaderBuffer(velocity0, boidVelocityArray.data(), sizeof(Vector4) * MAX_BOIDS, 0);
-            }
             rlDisableShader();
         }
         BeginDrawing();
-        ClearBackground((Color){182, 189, 195, 255});
+        ClearBackground((Color){5, 5, 10, 255});
 
         DrawText(TextFormat("FPS: %d", GetFPS()), 10, 40, 20, DARKGRAY);
         DrawText(TextFormat("Boid count: %d", MAX_BOIDS), SCREEN_WIDTH - 190, 40, 20, DARKGRAY);
 
-        BeginMode3D(camera);
-        // DrawText(TextFormat("FPS: %d", GetFPS()), 1, 1 - 500, 350, BLACK);
-        // DrawText(TextFormat("Frame count: %d", frameCount), SCREEN_WIDTH, 1 - 500, 350, BLACK);
-        // DrawText(TextFormat("Boid count: %d", MAX_BOIDS), WORLD_WIDTH - 2 * SCREEN_WIDTH, 1 - 500, 350, BLACK);
         {
-            for (size_t i{}; i < MAX_BOIDS; ++i)
+            BeginMode3D(camera);
+
+            rlEnableShader(boidShader.id);
+            Matrix viewMatrix = GetCameraMatrix(camera);
+            Matrix projectionMatrix = rlGetMatrixProjection();
+
+            SetShaderValueMatrix(boidShader, 1, viewMatrix);
+            SetShaderValueMatrix(boidShader, 2, projectionMatrix);
+            SetShaderValue(boidShader, 3, &SCALE, SHADER_UNIFORM_FLOAT);
+
+            if (frameCount % 2 == 0)
             {
-                Vector3 boidPosition = (Vector3){
-                    boidPositionArray[i].x, boidPositionArray[i].y, boidPositionArray[i].z
-                };
-                float boidSize = BOID_BASE_SIZE * SCALE;
-                DrawCubeV(boidPosition, {boidSize, boidSize, boidSize}, BLACK);
+                rlBindShaderBuffer(position1, 0);
+                rlBindShaderBuffer(velocity1, 1);
             }
+            else
+            {
+                rlBindShaderBuffer(position0, 0);
+                rlBindShaderBuffer(velocity0, 1);
+            }
+
+            rlEnableVertexArray(boidVAO);
+            rlDrawVertexArrayInstanced(0, 3, MAX_BOIDS);
+            rlDisableVertexArray();
+            rlDisableShader();
+
+            DrawCubeWires({WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_DEPTH / 2}, WORLD_WIDTH, WORLD_HEIGHT,
+                          WORLD_DEPTH, DARKGRAY);
+            EndMode3D();
         }
-        DrawCubeWires({WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_DEPTH / 2}, WORLD_WIDTH, WORLD_HEIGHT,
-                      WORLD_DEPTH, DARKGRAY);
-        EndMode3D();
         EndDrawing();
 
         UpdateFrame();

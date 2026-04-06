@@ -49,7 +49,7 @@ vec3 computeForce(vec3 sumDirection, float iBoidsInRange, vec3 currentVelocity,
 void main() {
     uint myIndex = gl_GlobalInvocationID.x;
 
-    if (myIndex >= u_maxBoids){
+    if (myIndex >= u_maxBoids) {
         return;
     }
     float perceptionRadiusSqr = (u_perceptionRadius * u_perceptionRadius) * u_scale;
@@ -99,7 +99,7 @@ void main() {
     targetDirection += cohesionAcceleration + separationAcceleration + alignmentAcceleration;
     velocityVector += (targetDirection * u_frameTime);
 
-    velocityVector =  safeNormalizeVector(velocityVector) * u_maxSpeed ;
+    velocityVector = safeNormalizeVector(velocityVector) * u_maxSpeed;
 
     positionVector += velocityVector;
     positionVector = mod(positionVector, u_worldSpace.xyz);

@@ -49,16 +49,16 @@ vec3 computeForce(vec3 sumDirection, float iBoidsInRange, vec3 currentVelocity,
 void main() {
     uint myIndex = gl_GlobalInvocationID.x;
 
-    if (myIndex >= u_maxBoids)
-    return;
-
+    if (myIndex >= u_maxBoids){
+        return;
+    }
     float perceptionRadiusSqr = (u_perceptionRadius * u_perceptionRadius) * u_scale;
     float separationRadiusSqr = (u_separationRadius * u_separationRadius) * u_scale;
 
     vec3 positionVector = inPositionBuffer[myIndex].xyz;
     vec3 velocityVector = inVelocityBuffer[myIndex].xyz;
 
-    vec3 totalAcceleration = vec3(0.0);
+    vec3 targetDirection = vec3(0.0);
     vec3 sumAlignment = vec3(0.0);
     vec3 sumSeparation = vec3(0.0);
     vec3 sumCohesion = vec3(0.0);
@@ -89,20 +89,17 @@ void main() {
         boidsInSeparationRange += separationDistCheck;
     }
 
-    float iBoidsInRange = (boidsInRange > 0.0) ? 1.0 / boidsInRange : 0;
-    float iBoidsInSeparationRange = (boidsInSeparationRange > 0.0) ? 1.0 / (boidsInSeparationRange) : 0;
+    float iBoidsInRange = 1 - float(boidsInRange == 0.0) / 0.00001 + boidsInRange; // evil math hack
+    float iBoidsInSeparationRange = 1 - float(boidsInSeparationRange == 0.0) / 0.0001 + boidsInSeparationRange;
 
     vec3 alignmentAcceleration = computeForce(sumAlignment, iBoidsInRange, velocityVector, u_alignmentStrength);
     vec3 cohesionAcceleration = computeForce(sumCohesion, iBoidsInRange, velocityVector, u_cohesionStrength);
     vec3 separationAcceleration = computeForce(sumSeparation, iBoidsInSeparationRange, velocityVector, u_separationStrength);
 
-    totalAcceleration += cohesionAcceleration + separationAcceleration + alignmentAcceleration;
-    velocityVector += (totalAcceleration * u_frameTime);
+    targetDirection += cohesionAcceleration + separationAcceleration + alignmentAcceleration;
+    velocityVector += (targetDirection * u_frameTime);
 
-
-    float speed = length(velocityVector);
-    velocityVector =  (speed > u_maxSpeed) ? safeNormalizeVector(velocityVector) * u_maxSpeed : velocityVector;
-    velocityVector =  (speed < u_minSpeed) ? safeNormalizeVector(velocityVector) * u_minSpeed : velocityVector;
+    velocityVector =  safeNormalizeVector(velocityVector) * u_maxSpeed ;
 
     positionVector += velocityVector;
     positionVector = mod(positionVector, u_worldSpace.xyz);

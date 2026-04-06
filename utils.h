@@ -2,7 +2,7 @@
 #include <raylib.h>
 #include <climits>
 
-void HandleCameraControl(Camera3D& cam);
+void HandleSimulationControl(Camera3D& cam, bool& isPaused);
 
 
 float GetRandomFValue(float min, float max);

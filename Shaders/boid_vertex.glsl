@@ -26,13 +26,13 @@ void main() {
     vec2 yvec = vec2(-sin(boidRotation), cos(boidRotation));
     vertexView.xy = vertexView.x * xvec + vertexView.y * yvec;
 
-    float isTip = float(gl_VertexID == 2);
-    float arrowLength = speed * 0.005;
-    vertexView.xy = vertexView.xy * (1.0 - isTip) + isTip * vertexView.xy * (arrowLength + 1.0);
-
     vertexView += (view * vec4(boidPosition, 1.0)).xyz;
 
     gl_Position = projection * vec4(vertexView, 1);
-    boidColor.rgb = vec3(0.0);
+
+    float isBoidEven = float(gl_InstanceID % 2 == 0);
+    float isBoidThird = float(gl_InstanceID % 3 == 0);
+
+    boidColor.rgb = vec3(1.0 - isBoidEven, isBoidThird * isBoidThird, 1./0- isBoidThird);
     boidColor.a = 1.0;
 }

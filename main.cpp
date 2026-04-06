@@ -133,7 +133,7 @@ int main()
             rlDisableShader();
         }
         BeginDrawing();
-        ClearBackground((Color){182, 185, 190, 255});
+        ClearBackground((Color){2, 5, 0, 255});
 
         DrawText(TextFormat("FPS: %d", GetFPS()), 10, 40, 20, DARKGRAY);
         DrawText(TextFormat("Boid count: %d", MAX_BOIDS), SCREEN_WIDTH - 190, 40, 20, DARKGRAY);

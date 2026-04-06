@@ -30,9 +30,8 @@ void main() {
 
     gl_Position = projection * vec4(vertexView, 1);
 
-    float isBoidEven = float(gl_InstanceID % 2 == 0);
-    float isBoidThird = float(gl_InstanceID % 3 == 0);
+    float isBoidBlue = float(gl_InstanceID % 2 == 0);
 
-    boidColor.rgb = vec3(1.0 - isBoidEven, isBoidThird * isBoidThird, 1./0- isBoidThird);
+    boidColor.rgb = vec3(1.0 - isBoidBlue, 0.0,  isBoidBlue + 0.9);
     boidColor.a = 1.0;
 }

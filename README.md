@@ -4,6 +4,6 @@ The rendering is also done on the GPU with the vertex and frag shaders, followin
 
 boids :D
 
-https://github.com/user-attachments/assets/49b2ed2d-4e66-4b64-a5be-ec6187ae4616
+https://github.com/user-attachments/assets/6c2019c7-8a9e-4228-8e7f-099b64a5a397
 
 
